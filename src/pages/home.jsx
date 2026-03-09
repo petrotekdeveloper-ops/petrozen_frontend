@@ -6,6 +6,7 @@ import ServiceCard from "@/components/ServiceCard";
 import ImageCard from "@/components/ImageCard";
 import Button from "@/components/Button";
 import { IMAGES } from "@/lib/images";
+import { toast } from "@/hooks/use-toast";
 import HERO_TEST_1 from "../assets/images/heroTest1.jpeg";
 
 import { Download } from "lucide-react";
@@ -50,6 +51,13 @@ const SERVICE_CARDS = [
 
 export default function Home() {
   const [isAtTop, setIsAtTop] = useState(true);
+
+  const handleBrochureDownloadClick = () => {
+    toast({
+      title: "Brochure unavailable",
+      description: "The brochure is currently unavailable. Please contact us for assistance.",
+    });
+  };
 
   useEffect(() => {
     const handleScroll = () => setIsAtTop(window.scrollY <= 0);
@@ -162,7 +170,7 @@ export default function Home() {
                   as="link"
                   href="/about"
                   testId="button-about-more"
-                  variant="secondary"
+                  variant="primary"
                   className="transition-all duration-200 hover:scale-105"
                 >
                   More on About
@@ -332,16 +340,15 @@ export default function Home() {
                     className="h-20 w-auto object-contain"
                   />
                   <div className="mt-4 text-base font-semibold text-foreground">Petrozen Brochure</div>
-                  <a
-                    href="/brochure.pdf"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={handleBrochureDownloadClick}
                     data-testid="link-brochure-download"
                     className="mt-12 inline-flex items-center gap-2 text-sm font-medium text-primary transition-all duration-300 hover:text-primary/80 hover:gap-3"
                   >
                     <Download className="h-5 w-5" />
                     Download brochure
-                  </a>
+                  </button>
                 </div>
               </motion.div>
             </div>
