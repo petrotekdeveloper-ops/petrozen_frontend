@@ -497,7 +497,7 @@ export default function AdminCategories() {
                         <img
                           src={toPublicUrl(item.imageUrl)}
                           alt=""
-                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                          className="h-full w-full object-contain p-2 transition-transform group-hover:scale-105"
                           loading="lazy"
                         />
                       ) : (
@@ -681,7 +681,7 @@ export default function AdminCategories() {
                           <img
                             src={toPublicUrl(detailItem.imageUrl)}
                             alt=""
-                            className="h-full w-full object-cover"
+                            className="h-full w-full object-contain p-2"
                           />
                         ) : (
                           <svg className="h-14 w-14 text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">

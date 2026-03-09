@@ -482,7 +482,7 @@ export default function AdminSubCategories() {
                   >
                     <div className="flex h-40 w-40 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-muted shadow-inner">
                       {item.imageUrl ? (
-                        <img src={toPublicUrl(item.imageUrl)} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-105" loading="lazy" />
+                        <img src={toPublicUrl(item.imageUrl)} alt="" className="h-full w-full object-contain p-2 transition-transform group-hover:scale-105" loading="lazy" />
                       ) : (
                         <svg className="h-20 w-20 text-muted-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
@@ -595,7 +595,7 @@ export default function AdminSubCategories() {
                     <div className="flex flex-col items-center">
                       <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl bg-muted">
                         {detailItem.imageUrl ? (
-                          <img src={toPublicUrl(detailItem.imageUrl)} alt="" className="h-full w-full object-cover" />
+                          <img src={toPublicUrl(detailItem.imageUrl)} alt="" className="h-full w-full object-contain p-2" />
                         ) : (
                           <svg className="h-14 w-14 text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
