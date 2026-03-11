@@ -8,10 +8,14 @@ import logo from "@/assets/logo.png";
 export default function AdminCategories() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [items, setItems] = useState([]);
+  const [seoByCategoryId, setSeoByCategoryId] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
+  const [metaKeywords, setMetaKeywords] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [active, setActive] = useState(true);
   const [status, setStatus] = useState({ type: "", message: "" });
@@ -20,6 +24,9 @@ export default function AdminCategories() {
   const [editingId, setEditingId] = useState("");
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editMetaTitle, setEditMetaTitle] = useState("");
+  const [editMetaDescription, setEditMetaDescription] = useState("");
+  const [editMetaKeywords, setEditMetaKeywords] = useState("");
   const [editImageFile, setEditImageFile] = useState(null);
   const [editActive, setEditActive] = useState(true);
   const [editStatus, setEditStatus] = useState({ type: "", message: "" });
@@ -49,8 +56,16 @@ export default function AdminCategories() {
     setLoadError("");
     setIsLoading(true);
     try {
-      const res = await apiClient.get("/api/categories");
-      setItems(res?.data?.items ?? []);
+      const [catRes, seoRes] = await Promise.all([
+        apiClient.get("/api/categories"),
+        apiClient.get("/api/admin/seo?pageType=category").catch(() => ({ data: { items: [] } })),
+      ]);
+      const cats = catRes?.data?.items ?? [];
+      setItems(cats);
+      const seoItems = seoRes?.data?.items ?? [];
+      const map = {};
+      seoItems.forEach((s) => { map[s.pageKey] = s; });
+      setSeoByCategoryId(map);
     } catch (err) {
       setLoadError(err?.response?.data?.message || err?.message || "Failed to load categories.");
       setItems([]);
@@ -73,8 +88,15 @@ export default function AdminCategories() {
     setDetailError("");
     setDetailLoading(true);
     try {
-      const res = await apiClient.get(`/api/categories/${id}`);
-      setDetailItem(res?.data?.item ?? null);
+      const [catRes, seoRes] = await Promise.all([
+        apiClient.get(`/api/categories/${id}`),
+        apiClient.get(`/api/seo/category/${id}`).catch(() => ({ data: { item: null } })),
+      ]);
+      setDetailItem(catRes?.data?.item ?? null);
+      const seo = seoRes?.data?.item;
+      setEditMetaTitle(seo?.metaTitle ?? "");
+      setEditMetaDescription(seo?.metaDescription ?? "");
+      setEditMetaKeywords(seo?.metaKeywords ?? "");
     } catch (err) {
       setDetailError(err?.response?.data?.message || err?.message || "Failed to load category.");
       setDetailItem(null);
@@ -100,6 +122,9 @@ export default function AdminCategories() {
   const resetForm = () => {
     setTitle("");
     setDescription("");
+    setMetaTitle("");
+    setMetaDescription("");
+    setMetaKeywords("");
     setImageFile(null);
     setImagePreview(null);
     setActive(true);
@@ -131,12 +156,16 @@ export default function AdminCategories() {
     setEditImageFile(null);
     setEditActive(Boolean(src?.active));
     setEditStatus({ type: "", message: "" });
+    // editMetaTitle/Description/Keywords are set by fetchCategoryDetail when detail loads
   };
 
   const cancelEdit = () => {
     setEditingId("");
     setEditTitle("");
     setEditDescription("");
+    setEditMetaTitle("");
+    setEditMetaDescription("");
+    setEditMetaKeywords("");
     setEditImageFile(null);
     setEditImagePreview(null);
     setEditActive(true);
@@ -182,9 +211,20 @@ export default function AdminCategories() {
       fd.append("active", String(active));
       if (imageFile) fd.append("image", imageFile);
 
-      await apiClient.post("/api/categories", fd, {
+      const catRes = await apiClient.post("/api/categories", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      const newCategory = catRes?.data?.item;
+
+      if (newCategory && (metaTitle || metaDescription || metaKeywords)) {
+        await apiClient.put("/api/admin/seo/upsert", {
+          pageType: "category",
+          pageKey: newCategory._id,
+          metaTitle,
+          metaDescription,
+          metaKeywords,
+        });
+      }
 
       setStatus({ type: "success", message: "Category created successfully." });
       await fetchCategories();
@@ -216,6 +256,14 @@ export default function AdminCategories() {
 
       await apiClient.put(`/api/categories/${editingId}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      await apiClient.put("/api/admin/seo/upsert", {
+        pageType: "category",
+        pageKey: editingId,
+        metaTitle: editMetaTitle,
+        metaDescription: editMetaDescription,
+        metaKeywords: editMetaKeywords,
       });
 
       setEditStatus({ type: "success", message: "Category updated successfully." });
@@ -275,7 +323,7 @@ export default function AdminCategories() {
       }
     >
       {isFormOpen ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-6">
+            <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-6 py-8">
               <form
                 onSubmit={onSubmit}
                 className="relative z-[60] mx-auto grid w-full max-w-2xl gap-4 rounded-2xl border-2 border-blue-500 bg-card p-4 shadow-xl sm:p-5"
@@ -310,6 +358,42 @@ export default function AdminCategories() {
                   className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                   placeholder="Short description…"
                 />
+              </div>
+
+              <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                <p className="mb-3 text-sm font-medium text-foreground">SEO (optional)</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground" htmlFor="category-meta-title">Meta Title</label>
+                    <input
+                      id="category-meta-title"
+                      value={metaTitle}
+                      onChange={(e) => setMetaTitle(e.target.value)}
+                      className="mt-1 h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      placeholder="Page title for search engines"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground" htmlFor="category-meta-desc">Meta Description</label>
+                    <textarea
+                      id="category-meta-desc"
+                      value={metaDescription}
+                      onChange={(e) => setMetaDescription(e.target.value)}
+                      className="mt-1 min-h-[60px] w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      placeholder="Short description for search results"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground" htmlFor="category-meta-keywords">Meta Keywords</label>
+                    <input
+                      id="category-meta-keywords"
+                      value={metaKeywords}
+                      onChange={(e) => setMetaKeywords(e.target.value)}
+                      className="mt-1 h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      placeholder="keyword1, keyword2, keyword3"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -509,6 +593,11 @@ export default function AdminCategories() {
                     <span className="w-full truncate text-center text-base font-semibold text-foreground">
                       {item.title}
                     </span>
+                    {seoByCategoryId[item._id] ? (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                        SEO
+                      </span>
+                    ) : null}
                   </button>
                 ))}
               </div>
@@ -518,7 +607,7 @@ export default function AdminCategories() {
           {/* Detail overlay */}
           {selectedId ? (
             <div
-              className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-4"
+              className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-4 py-8"
               onClick={closeDetail}
               role="dialog"
               aria-modal="true"
@@ -574,6 +663,38 @@ export default function AdminCategories() {
                           onChange={(e) => setEditDescription(e.target.value)}
                           className="mt-2 min-h-[84px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                         />
+                      </div>
+                      <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                        <p className="mb-2 text-xs font-medium text-muted-foreground">SEO (optional)</p>
+                        <div className="space-y-2">
+                          <div>
+                            <label className="text-xs text-muted-foreground">Meta Title</label>
+                            <input
+                              value={editMetaTitle}
+                              onChange={(e) => setEditMetaTitle(e.target.value)}
+                              className="mt-1 h-9 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                              placeholder="Meta title"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-muted-foreground">Meta Description</label>
+                            <textarea
+                              value={editMetaDescription}
+                              onChange={(e) => setEditMetaDescription(e.target.value)}
+                              className="mt-1 min-h-[56px] w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                              placeholder="Meta description"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs text-muted-foreground">Meta Keywords</label>
+                            <input
+                              value={editMetaKeywords}
+                              onChange={(e) => setEditMetaKeywords(e.target.value)}
+                              className="mt-1 h-9 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                              placeholder="keyword1, keyword2"
+                            />
+                          </div>
+                        </div>
                       </div>
                       <div className="space-y-3">
                         <div>
@@ -704,6 +825,31 @@ export default function AdminCategories() {
                         {detailItem.description || "No description."}
                       </p>
                     </div>
+                    {(editMetaTitle || editMetaDescription || editMetaKeywords) ? (
+                      <div className="mt-6 rounded-xl border border-border/60 bg-muted/20 p-4">
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">SEO</p>
+                        <div className="mt-2 space-y-2 text-sm">
+                          {editMetaTitle ? (
+                            <div>
+                              <span className="text-muted-foreground">Meta Title: </span>
+                              <span className="text-foreground">{editMetaTitle}</span>
+                            </div>
+                          ) : null}
+                          {editMetaDescription ? (
+                            <div>
+                              <span className="text-muted-foreground">Meta Description: </span>
+                              <span className="text-foreground">{editMetaDescription}</span>
+                            </div>
+                          ) : null}
+                          {editMetaKeywords ? (
+                            <div>
+                              <span className="text-muted-foreground">Meta Keywords: </span>
+                              <span className="text-foreground">{editMetaKeywords}</span>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="mt-6 flex gap-2 border-t border-border/60 pt-4">
                       <Button
                         variant="secondary"
