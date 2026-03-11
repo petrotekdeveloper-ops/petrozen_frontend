@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Button from "@/components/Button";
 import { apiClient } from "@/lib/apiClient";
 import AdminShell from "@/components/admin/AdminShell";
+import { Trash2 } from "lucide-react";
 
 const PAGE_TYPE_LABELS = { static: "Static", category: "Category", subcategory: "Subcategory", product: "Product" };
 
@@ -29,6 +30,7 @@ export default function AdminSeo() {
   const [addMetaKeywords, setAddMetaKeywords] = useState("");
   const [addStatus, setAddStatus] = useState({ type: "", message: "" });
   const [isAdding, setIsAdding] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
   const getPageLabel = (item) => {
     if (item.pageType === "static") return formatPageKey(item.pageKey);
@@ -119,6 +121,22 @@ export default function AdminSeo() {
       setAddStatus({ type: "error", message: err?.response?.data?.message || err?.message || "Failed to create." });
     } finally {
       setIsAdding(false);
+    }
+  };
+
+  const onDelete = async (item) => {
+    const ok = window.confirm(`Delete SEO for "${getPageLabel(item)}"?`);
+    if (!ok) return;
+
+    setDeletingId(item._id);
+    try {
+      await apiClient.delete(`/api/admin/seo/${item._id}`);
+      if (editingId === item._id) cancelEdit();
+      await fetchSeo();
+    } catch (err) {
+      setEditStatus({ type: "error", message: err?.response?.data?.message || err?.message || "Failed to delete." });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -243,14 +261,27 @@ export default function AdminSeo() {
                       <div className="mt-2 truncate text-xs text-muted-foreground">
                         {item.metaTitle || "—"} | {item.metaDescription ? `${item.metaDescription.slice(0, 40)}…` : "—"}
                       </div>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        className="mt-3"
-                        onClick={() => startEdit(item)}
-                      >
-                        Edit
-                      </Button>
+                      <div className="mt-3 flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => startEdit(item)}
+                        >
+                          Edit
+                        </Button>
+                        {item.pageType !== "static" ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={deletingId === item._id}
+                            onClick={() => onDelete(item)}
+                            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                            aria-label="Delete"
+                          >
+                            {deletingId === item._id ? "Deleting…" : <Trash2 className="h-4 w-4" />}
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -415,13 +446,34 @@ export default function AdminSeo() {
                 />
               </div>
             </div>
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6 flex flex-wrap gap-3">
               <Button type="submit" disabled={isSaving}>
                 {isSaving ? "Saving…" : "Save"}
               </Button>
               <Button variant="ghost" type="button" onClick={cancelEdit}>
                 Cancel
               </Button>
+              {items.find((i) => i._id === editingId)?.pageType !== "static" ? (
+              <Button
+                variant="ghost"
+                type="button"
+                disabled={isSaving}
+                onClick={() => {
+                  const item = items.find((i) => i._id === editingId);
+                  if (item && window.confirm(`Delete SEO for "${getPageLabel(item)}"?`)) {
+                    apiClient.delete(`/api/admin/seo/${editingId}`).then(() => {
+                      cancelEdit();
+                      fetchSeo();
+                    }).catch((err) => {
+                      setEditStatus({ type: "error", message: err?.response?.data?.message || err?.message || "Failed to delete." });
+                    });
+                  }
+                }}
+                className="ml-auto text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
+                Delete
+              </Button>
+              ) : null}
             </div>
           </form>
         </div>

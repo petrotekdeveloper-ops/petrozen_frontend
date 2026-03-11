@@ -12,9 +12,11 @@ export default function AdminProducts() {
   const [listSubCategories, setListSubCategories] = useState([]);
   const [formCategoryId, setFormCategoryId] = useState("");
   const [formSubCategoryId, setFormSubCategoryId] = useState("");
+  const [formBrandId, setFormBrandId] = useState("");
   const [listCategoryId, setListCategoryId] = useState("");
   const [listSubCategoryId, setListSubCategoryId] = useState("");
   const [items, setItems] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [seoByProductId, setSeoByProductId] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -32,6 +34,7 @@ export default function AdminProducts() {
   const [editCategoryId, setEditCategoryId] = useState("");
   const [editSubCategories, setEditSubCategories] = useState([]);
   const [editSubCategoryId, setEditSubCategoryId] = useState("");
+  const [editBrandId, setEditBrandId] = useState("");
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editMetaTitle, setEditMetaTitle] = useState("");
@@ -73,6 +76,23 @@ export default function AdminProducts() {
       .catch(() => {
         if (!mounted) return;
         setCategories([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    apiClient
+      .get("/api/brands")
+      .then((res) => {
+        if (!mounted) return;
+        setBrands(res?.data?.items ?? []);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setBrands([]);
       });
     return () => {
       mounted = false;
@@ -164,6 +184,7 @@ export default function AdminProducts() {
   const resetForm = () => {
     setFormCategoryId("");
     setFormSubCategoryId("");
+    setFormBrandId("");
     setTitle("");
     setDescription("");
     setMetaTitle("");
@@ -251,9 +272,11 @@ export default function AdminProducts() {
     const src = item || detailItem;
     const catId = src?.subCategory?.category?._id || "";
     const subId = src?.subCategory?._id || src?.subCategory || "";
+    const brandId = src?.brand?._id || src?.brand || "";
     setEditingId(src?._id || "");
     setEditCategoryId(catId);
     setEditSubCategoryId(subId);
+    setEditBrandId(brandId);
     setEditTitle(src?.title || "");
     setEditDescription(src?.description || "");
     setEditImageFile(null);
@@ -267,6 +290,7 @@ export default function AdminProducts() {
     setEditCategoryId("");
     setEditSubCategories([]);
     setEditSubCategoryId("");
+    setEditBrandId("");
     setEditTitle("");
     setEditDescription("");
     setEditMetaTitle("");
@@ -313,6 +337,7 @@ export default function AdminProducts() {
     try {
       const fd = new FormData();
       fd.append("subCategoryId", formSubCategoryId);
+      if (formBrandId) fd.append("brandId", formBrandId);
       fd.append("title", title.trim());
       if (description.trim()) fd.append("description", description.trim());
       fd.append("active", String(active));
@@ -355,6 +380,7 @@ export default function AdminProducts() {
     try {
       const fd = new FormData();
       fd.append("subCategoryId", editSubCategoryId);
+      fd.append("brandId", editBrandId || "");
       fd.append("title", editTitle.trim());
       fd.append("description", editDescription.trim());
       fd.append("active", String(editActive));
@@ -475,6 +501,26 @@ export default function AdminProducts() {
                     {formSubCategories.map((s) => (
                       <option key={s._id} value={s._id}>
                         {s.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-foreground" htmlFor="product-brand">
+                    Brand (optional)
+                  </label>
+                  <select
+                    id="product-brand"
+                    data-testid="select-admin-product-brand"
+                    value={formBrandId}
+                    onChange={(e) => setFormBrandId(e.target.value)}
+                    className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">No brand</option>
+                    {brands.map((b) => (
+                      <option key={b._id} value={b._id}>
+                        {b.name}
                       </option>
                     ))}
                   </select>
@@ -673,9 +719,16 @@ export default function AdminProducts() {
                       )}
                     </div>
                     <span className="w-full truncate text-center text-base font-semibold text-foreground">{item.title}</span>
-                    {seoByProductId[item._id] ? (
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">SEO</span>
-                    ) : null}
+                    <div className="flex flex-wrap items-center justify-center gap-1">
+                      {item.brand ? (
+                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                          {item.brand.name}
+                        </span>
+                      ) : null}
+                      {seoByProductId[item._id] ? (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">SEO</span>
+                      ) : null}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -739,6 +792,23 @@ export default function AdminProducts() {
                                 </option>
                               ))}
                             </select>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground">Brand</label>
+                          <select
+                            data-testid="select-admin-product-edit-brand"
+                            value={editBrandId}
+                            onChange={(e) => setEditBrandId(e.target.value)}
+                            className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                          >
+                            <option value="">No brand</option>
+                            {brands.map((b) => (
+                              <option key={b._id} value={b._id}>
+                                {b.name}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                       </div>
 
@@ -836,6 +906,11 @@ export default function AdminProducts() {
                       <p className="mt-1 text-sm text-muted-foreground">
                         {detailItem.subCategory?.category?.title || "—"} / {detailItem.subCategory?.title || "—"}
                       </p>
+                      {detailItem.brand ? (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Brand: <span className="font-medium text-foreground">{detailItem.brand.name}</span>
+                        </p>
+                      ) : null}
                       <span className={`mt-2 rounded-full px-3 py-0.5 text-xs font-medium ${detailItem.active ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>
                         {detailItem.active ? "Active" : "Inactive"}
                       </span>
