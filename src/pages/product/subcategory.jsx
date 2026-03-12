@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "wouter";
 import PageLayout from "@/components/PageLayout";
+import SeoHead from "@/components/SeoHead";
 import SectionTitle from "@/components/SectionTitle";
 import { apiClient } from "@/lib/apiClient";
 import { HERO_URLS } from "@/lib/images";
 import { IMAGES } from "@/lib/images";
 import { ChevronLeft } from "lucide-react";
+import { useSeo } from "@/hooks/useSeo";
 
 const HERO = HERO_URLS.OIL_GAS || IMAGES.HERO_OIL_GAS;
 
@@ -19,6 +21,7 @@ function toPublicUrl(maybePath) {
 
 export default function Subcategory() {
   const { categoryId } = useParams();
+  const { seo } = useSeo("category", categoryId);
   const [category, setCategory] = useState(null);
   const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,6 +71,13 @@ export default function Subcategory() {
 
   return (
     <PageLayout testId="page-product-category" title="Subcategories" heroImage={category?.imageUrl ? toPublicUrl(category.imageUrl) : HERO} heroTitleFont="sans">
+      <SeoHead
+        seo={seo}
+        fallbackTitle={`${category?.title || "Category"} | Petrozen`}
+        fallbackDescription={category?.description || "Explore subcategories and discover suitable industrial products for your project needs."}
+        fallbackKeywords={`${category?.title || "category"}, petrozen, industrial products`}
+        ogImage={category?.imageUrl ? toPublicUrl(category.imageUrl) : HERO}
+      />
       <section data-testid="section-breadcrumb" className="py-6 border-b border-border/50">
         <div className="container-pad">
           <Link href="/products">

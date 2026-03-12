@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Button from "@/components/Button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, X } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import AdminShell from "@/components/admin/AdminShell";
-import logo from "@/assets/logo.png";
+import KeywordTagsInput from "@/components/admin/KeywordTagsInput";
 
 export default function AdminProducts() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -26,6 +26,10 @@ export default function AdminProducts() {
   const [metaDescription, setMetaDescription] = useState("");
   const [metaKeywords, setMetaKeywords] = useState("");
   const [imageFile, setImageFile] = useState(null);
+  const [catalogFile, setCatalogFile] = useState(null);
+  const [catalogPreview, setCatalogPreview] = useState(null);
+  const [featuresText, setFeaturesText] = useState("");
+  const [specificationsText, setSpecificationsText] = useState("");
   const [active, setActive] = useState(true);
   const [status, setStatus] = useState({ type: "", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,20 +45,28 @@ export default function AdminProducts() {
   const [editMetaDescription, setEditMetaDescription] = useState("");
   const [editMetaKeywords, setEditMetaKeywords] = useState("");
   const [editImageFile, setEditImageFile] = useState(null);
+  const [editCatalogFile, setEditCatalogFile] = useState(null);
+  const [editCatalogPreview, setEditCatalogPreview] = useState(null);
+  const [editFeaturesText, setEditFeaturesText] = useState("");
+  const [editSpecificationsText, setEditSpecificationsText] = useState("");
   const [editActive, setEditActive] = useState(true);
   const [editStatus, setEditStatus] = useState({ type: "", message: "" });
   const [isUpdating, setIsUpdating] = useState(false);
   const [deletingId, setDeletingId] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const [imageDropActive, setImageDropActive] = useState(false);
+  const [catalogDropActive, setCatalogDropActive] = useState(false);
   const [editImagePreview, setEditImagePreview] = useState(null);
   const [editImageDropActive, setEditImageDropActive] = useState(false);
+  const [editCatalogDropActive, setEditCatalogDropActive] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [detailItem, setDetailItem] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
   const fileInputRef = useRef(null);
   const editFileInputRef = useRef(null);
+  const catalogFileInputRef = useRef(null);
+  const editCatalogFileInputRef = useRef(null);
 
   const apiBase = import.meta.env.VITE_API_BASE_URL || "";
   const toPublicUrl = (maybePath) => {
@@ -64,6 +76,19 @@ export default function AdminProducts() {
     const path = String(maybePath).startsWith("/") ? maybePath : `/${maybePath}`;
     return `${base}${path}`;
   };
+
+  const parseTextList = (value) =>
+    String(value || "")
+      .split(/\r?\n|,/)
+      .map((x) => x.trim())
+      .filter(Boolean);
+
+  const listToTextarea = (value) =>
+    Array.isArray(value) ? value.filter(Boolean).join("\n") : "";
+
+  const isImageType = (file) => Boolean(file?.type?.startsWith("image/"));
+  const isPdfType = (file) => String(file?.type || "").toLowerCase() === "application/pdf";
+  const isCatalogType = (file) => isImageType(file) || isPdfType(file);
 
   useEffect(() => {
     let mounted = true;
@@ -191,6 +216,10 @@ export default function AdminProducts() {
     setMetaDescription("");
     setMetaKeywords("");
     setImageFile(null);
+    setCatalogFile(null);
+    setCatalogPreview(null);
+    setFeaturesText("");
+    setSpecificationsText("");
     setImagePreview(null);
     setActive(true);
   };
@@ -212,6 +241,24 @@ export default function AdminProducts() {
     }
     setEditImagePreview(null);
   }, [editImageFile]);
+
+  useEffect(() => {
+    if (catalogFile?.type?.startsWith("image/")) {
+      const url = URL.createObjectURL(catalogFile);
+      setCatalogPreview(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setCatalogPreview(null);
+  }, [catalogFile]);
+
+  useEffect(() => {
+    if (editCatalogFile?.type?.startsWith("image/")) {
+      const url = URL.createObjectURL(editCatalogFile);
+      setEditCatalogPreview(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setEditCatalogPreview(null);
+  }, [editCatalogFile]);
 
   const fetchProductDetail = async (id) => {
     if (!id) {
@@ -279,7 +326,11 @@ export default function AdminProducts() {
     setEditBrandId(brandId);
     setEditTitle(src?.title || "");
     setEditDescription(src?.description || "");
+    setEditFeaturesText(listToTextarea(src?.features));
+    setEditSpecificationsText(listToTextarea(src?.specifications));
     setEditImageFile(null);
+    setEditCatalogFile(null);
+    setEditCatalogPreview(null);
     setEditActive(Boolean(src?.active));
     setEditStatus({ type: "", message: "" });
     loadEditSubcategories(catId, subId);
@@ -293,11 +344,15 @@ export default function AdminProducts() {
     setEditBrandId("");
     setEditTitle("");
     setEditDescription("");
+    setEditFeaturesText("");
+    setEditSpecificationsText("");
     setEditMetaTitle("");
     setEditMetaDescription("");
     setEditMetaKeywords("");
     setEditImageFile(null);
+    setEditCatalogFile(null);
     setEditImagePreview(null);
+    setEditCatalogPreview(null);
     setEditActive(true);
     setEditStatus({ type: "", message: "" });
   };
@@ -313,7 +368,7 @@ export default function AdminProducts() {
     if (isEdit) setEditImageDropActive(false);
     else setImageDropActive(false);
     const file = e.dataTransfer?.files?.[0];
-    if (file?.type?.startsWith("image/")) setFile(file);
+    if (isImageType(file)) setFile(file);
   };
 
   const handleImageDragOver = (e, isEdit) => {
@@ -330,6 +385,29 @@ export default function AdminProducts() {
     else setImageDropActive(false);
   };
 
+  const handleCatalogDrop = (e, setFile, isEdit) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isEdit) setEditCatalogDropActive(false);
+    else setCatalogDropActive(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (isCatalogType(file)) setFile(file);
+  };
+
+  const handleCatalogDragOver = (e, isEdit) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isEdit) setEditCatalogDropActive(true);
+    else setCatalogDropActive(true);
+  };
+
+  const handleCatalogDragLeave = (e, isEdit) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isEdit) setEditCatalogDropActive(false);
+    else setCatalogDropActive(false);
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
     setStatus({ type: "", message: "" });
@@ -340,8 +418,11 @@ export default function AdminProducts() {
       if (formBrandId) fd.append("brandId", formBrandId);
       fd.append("title", title.trim());
       if (description.trim()) fd.append("description", description.trim());
+      fd.append("features", JSON.stringify(parseTextList(featuresText)));
+      fd.append("specifications", JSON.stringify(parseTextList(specificationsText)));
       fd.append("active", String(active));
       if (imageFile) fd.append("image", imageFile);
+      if (catalogFile) fd.append("catelog", catalogFile);
 
       const prodRes = await apiClient.post("/api/products", fd, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -383,8 +464,11 @@ export default function AdminProducts() {
       fd.append("brandId", editBrandId || "");
       fd.append("title", editTitle.trim());
       fd.append("description", editDescription.trim());
+      fd.append("features", JSON.stringify(parseTextList(editFeaturesText)));
+      fd.append("specifications", JSON.stringify(parseTextList(editSpecificationsText)));
       fd.append("active", String(editActive));
       if (editImageFile) fd.append("image", editImageFile);
+      if (editCatalogFile) fd.append("catelog", editCatalogFile);
 
       await apiClient.put(`/api/products/${editingId}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -438,167 +522,277 @@ export default function AdminProducts() {
       headerBare
       sectionBare
       actions={
-        <Button
-            testId="button-admin-product-add"
-            variant={isFormOpen ? "secondary" : "primary"}
+        isFormOpen ? (
+          <button
+            type="button"
+            data-testid="button-admin-product-add"
+            aria-label="Close"
             onClick={() => {
               setStatus({ type: "", message: "" });
-              setIsFormOpen((s) => !s);
+              setIsFormOpen(false);
+            }}
+            className="p-1 text-muted-foreground hover:text-foreground rounded transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="h-5 w-5" aria-hidden />
+          </button>
+        ) : (
+          <Button
+            testId="button-admin-product-add"
+            variant="primary"
+            onClick={() => {
+              setStatus({ type: "", message: "" });
+              setIsFormOpen(true);
+              closeDetail();
             }}
           >
-            {isFormOpen ? "Close" : "Add Product"}
+            Add Product
           </Button>
+        )
       }
     >
 
           {isFormOpen ? (
-            <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-6 py-8">
-              <form
-                onSubmit={onSubmit}
-                className="relative z-[60] mx-auto grid w-full max-w-2xl gap-4 rounded-2xl border-2 border-blue-500 bg-card p-4 shadow-xl sm:p-5"
-                onClick={(e) => e.stopPropagation()}
-              >
-              <div className="flex items-center gap-3">
-                <img src={logo} alt="" className="h-8 w-8 shrink-0 object-contain" aria-hidden />
-                <h2 className="text-lg font-semibold">Create new product</h2>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="text-sm font-medium text-foreground" htmlFor="product-category">
-                    Category
-                  </label>
-                  <select
-                    id="product-category"
-                    data-testid="select-admin-product-category"
-                    value={formCategoryId}
-                    onChange={(e) => setFormCategoryId(e.target.value)}
-                    className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="">Select a category…</option>
-                    {categories.map((c) => (
-                      <option key={c._id} value={c._id}>
-                        {c.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div className="mt-8 border-t border-border/60 pt-8">
+              <form onSubmit={onSubmit} className="w-full">
+              <div className="space-y-6">
+                <h2 className="text-xl font-semibold">Create new product</h2>
 
-                <div>
-                  <label className="text-sm font-medium text-foreground" htmlFor="product-subcategory">
-                    Subcategory
-                  </label>
-                  <select
-                    id="product-subcategory"
-                    data-testid="select-admin-product-subcategory"
-                    value={formSubCategoryId}
-                    onChange={(e) => setFormSubCategoryId(e.target.value)}
-                    disabled={!formCategoryId}
-                    className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
-                  >
-                    <option value="">
-                      {formCategoryId ? "Select a subcategory…" : "Select category first…"}
-                    </option>
-                    {formSubCategories.map((s) => (
-                      <option key={s._id} value={s._id}>
-                        {s.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <section className="rounded-xl border border-border/60 bg-muted/10 p-4">
+                  <h3 className="text-sm font-semibold text-foreground">Selection</h3>
+                  <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="text-sm font-medium text-foreground" htmlFor="product-category">
+                        Category
+                      </label>
+                      <select
+                        id="product-category"
+                        data-testid="select-admin-product-category"
+                        value={formCategoryId}
+                        onChange={(e) => setFormCategoryId(e.target.value)}
+                        className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        <option value="">Select a category…</option>
+                        {categories.map((c) => (
+                          <option key={c._id} value={c._id}>
+                            {c.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="text-sm font-medium text-foreground" htmlFor="product-brand">
-                    Brand (optional)
-                  </label>
-                  <select
-                    id="product-brand"
-                    data-testid="select-admin-product-brand"
-                    value={formBrandId}
-                    onChange={(e) => setFormBrandId(e.target.value)}
-                    className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="">No brand</option>
-                    {brands.map((b) => (
-                      <option key={b._id} value={b._id}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground" htmlFor="product-subcategory">
+                        Subcategory
+                      </label>
+                      <select
+                        id="product-subcategory"
+                        data-testid="select-admin-product-subcategory"
+                        value={formSubCategoryId}
+                        onChange={(e) => setFormSubCategoryId(e.target.value)}
+                        disabled={!formCategoryId}
+                        className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:opacity-60"
+                      >
+                        <option value="">
+                          {formCategoryId ? "Select a subcategory…" : "Select category first…"}
+                        </option>
+                        {formSubCategories.map((s) => (
+                          <option key={s._id} value={s._id}>
+                            {s.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-              <div>
-                <label className="text-sm font-medium text-foreground" htmlFor="product-title">
-                  Title
-                </label>
-                <input
-                  id="product-title"
-                  data-testid="input-admin-product-title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="e.g. API 6D Gate Valve"
-                />
-              </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground" htmlFor="product-brand">
+                        Brand (optional)
+                      </label>
+                      <select
+                        id="product-brand"
+                        data-testid="select-admin-product-brand"
+                        value={formBrandId}
+                        onChange={(e) => setFormBrandId(e.target.value)}
+                        className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      >
+                        <option value="">No brand</option>
+                        {brands.map((b) => (
+                          <option key={b._id} value={b._id}>
+                            {b.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-              <div>
-                <label className="text-sm font-medium text-foreground" htmlFor="product-description">
-                  Description (optional)
-                </label>
-                <textarea
-                  id="product-description"
-                  data-testid="input-admin-product-description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="Short description…"
-                />
-              </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground" htmlFor="product-title">
+                        Title
+                      </label>
+                      <input
+                        id="product-title"
+                        data-testid="input-admin-product-title"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="e.g. API 6D Gate Valve"
+                      />
+                    </div>
 
-              <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-                <p className="mb-3 text-sm font-medium text-foreground">SEO (optional)</p>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground" htmlFor="product-meta-title">Meta Title</label>
-                    <input id="product-meta-title" value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Page title for search engines" />
+                    <div className="flex items-center gap-3 sm:col-span-2">
+                      <span className="text-sm font-medium text-foreground">Active</span>
+                      <button type="button" role="switch" aria-checked={active} data-testid="input-admin-product-active" onClick={() => setActive((s) => !s)} className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${active ? "bg-primary" : "bg-muted"}`}>
+                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${active ? "translate-x-5" : "translate-x-0.5"}`} />
+                      </button>
+                      <span className="text-sm text-muted-foreground">{active ? "On" : "Off"}</span>
+                    </div>
                   </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground" htmlFor="product-meta-desc">Meta Description</label>
-                    <textarea id="product-meta-desc" value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} className="mt-1 min-h-[60px] w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Short description for search results" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground" htmlFor="product-meta-keywords">Meta Keywords</label>
-                    <input id="product-meta-keywords" value={metaKeywords} onChange={(e) => setMetaKeywords(e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="keyword1, keyword2, keyword3" />
-                  </div>
-                </div>
-              </div>
+                </section>
 
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium text-foreground">Image (optional)</label>
-                  <input ref={fileInputRef} id="product-image" data-testid="input-admin-product-image" type="file" accept="image/*" className="sr-only" onChange={(e) => setImageFile(e.target.files?.[0] ?? null)} />
-                  <div role="button" tabIndex={0} onClick={() => fileInputRef.current?.click()} onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()} onDragOver={(e) => handleImageDragOver(e, false)} onDragLeave={(e) => handleImageDragLeave(e, false)} onDrop={(e) => handleImageDrop(e, setImageFile, false)} className={`mt-2 flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${imageDropActive ? "border-primary bg-primary/5" : "border-border/70 bg-muted/30 hover:border-primary/50 hover:bg-muted/50"}`}>
-                    {imagePreview ? (
-                      <div className="relative w-full p-2">
-                        <img src={imagePreview} alt="Preview" className="mx-auto max-h-24 rounded-lg object-contain" />
-                        <button type="button" onClick={(e) => { e.stopPropagation(); setImageFile(null); fileInputRef.current && (fileInputRef.current.value = ""); }} className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80" aria-label="Remove image">×</button>
+                <section className="rounded-xl border border-border/60 bg-muted/10 p-4">
+                  <h3 className="text-sm font-semibold text-foreground">Description and Details</h3>
+                  <div className="mt-3 grid gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground" htmlFor="product-description">
+                        Description (optional)
+                      </label>
+                      <textarea
+                        id="product-description"
+                        data-testid="input-admin-product-description"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="Short description…"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-foreground" htmlFor="product-features">
+                        Features (optional)
+                      </label>
+                      <textarea
+                        id="product-features"
+                        data-testid="input-admin-product-features"
+                        value={featuresText}
+                        onChange={(e) => setFeaturesText(e.target.value)}
+                        className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        placeholder={"One per line\nor comma separated"}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-foreground" htmlFor="product-specifications">
+                        Specifications (optional)
+                      </label>
+                      <textarea
+                        id="product-specifications"
+                        data-testid="input-admin-product-specifications"
+                        value={specificationsText}
+                        onChange={(e) => setSpecificationsText(e.target.value)}
+                        className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        placeholder={"One per line\nor comma separated"}
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-xl border border-border/60 bg-muted/10 p-4">
+                  <h3 className="text-sm font-semibold text-foreground">Uploads</h3>
+                  <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label className="text-sm font-medium text-foreground">Image (optional)</label>
+                      <input ref={fileInputRef} id="product-image" data-testid="input-admin-product-image" type="file" accept="image/*" className="sr-only" onChange={(e) => setImageFile(e.target.files?.[0] ?? null)} />
+                      <div role="button" tabIndex={0} onClick={() => fileInputRef.current?.click()} onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()} onDragOver={(e) => handleImageDragOver(e, false)} onDragLeave={(e) => handleImageDragLeave(e, false)} onDrop={(e) => handleImageDrop(e, setImageFile, false)} className={`mt-2 flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${imageDropActive ? "border-primary bg-primary/5" : "border-border/70 bg-muted/30 hover:border-primary/50 hover:bg-muted/50"}`}>
+                        {imagePreview ? (
+                          <div className="relative w-full p-2">
+                            <img src={imagePreview} alt="Preview" className="mx-auto max-h-24 rounded-lg object-contain" />
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setImageFile(null); fileInputRef.current && (fileInputRef.current.value = ""); }} className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80" aria-label="Remove image">×</button>
+                          </div>
+                        ) : (
+                          <>
+                            <svg className="mb-2 h-10 w-10 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z" /></svg>
+                            <span className="text-center text-sm font-medium text-foreground">Drop image here or click to browse</span>
+                            <span className="mt-0.5 text-xs text-muted-foreground">PNG, JPG, WebP up to 5MB</span>
+                          </>
+                        )}
                       </div>
-                    ) : (
-                      <>
-                        <svg className="mb-2 h-10 w-10 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z" /></svg>
-                        <span className="text-center text-sm font-medium text-foreground">Drop image here or click to browse</span>
-                        <span className="mt-0.5 text-xs text-muted-foreground">PNG, JPG, WebP up to 5MB</span>
-                      </>
-                    )}
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-foreground">Catalog (image/pdf, optional)</label>
+                      <input
+                        ref={catalogFileInputRef}
+                        id="product-catelog"
+                        data-testid="input-admin-product-catelog"
+                        type="file"
+                        accept="image/*,.pdf,application/pdf"
+                        className="sr-only"
+                        onChange={(e) => {
+                          const next = e.target.files?.[0] ?? null;
+                          if (!next || isCatalogType(next)) setCatalogFile(next);
+                        }}
+                      />
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => catalogFileInputRef.current?.click()}
+                        onKeyDown={(e) => e.key === "Enter" && catalogFileInputRef.current?.click()}
+                        onDragOver={(e) => handleCatalogDragOver(e, false)}
+                        onDragLeave={(e) => handleCatalogDragLeave(e, false)}
+                        onDrop={(e) => handleCatalogDrop(e, setCatalogFile, false)}
+                        className={`mt-2 flex min-h-[100px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${catalogDropActive ? "border-primary bg-primary/5" : "border-border/70 bg-muted/30 hover:border-primary/50 hover:bg-muted/50"}`}
+                      >
+                        {catalogFile ? (
+                          <div className="relative w-full p-3 text-center">
+                            {catalogPreview ? (
+                              <img src={catalogPreview} alt="Catalog preview" className="mx-auto max-h-20 rounded-lg object-contain" />
+                            ) : (
+                              <p className="text-sm font-medium text-foreground">{catalogFile.name}</p>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCatalogFile(null);
+                                if (catalogFileInputRef.current) catalogFileInputRef.current.value = "";
+                              }}
+                              className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-sm text-white transition hover:bg-black/80"
+                              aria-label="Remove catalog file"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="text-center text-sm font-medium text-foreground">Drop catalog file here or click to browse</span>
+                            <span className="mt-0.5 text-xs text-muted-foreground">Images or PDF up to 5MB</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-foreground">Active</span>
-                  <button type="button" role="switch" aria-checked={active} data-testid="input-admin-product-active" onClick={() => setActive((s) => !s)} className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${active ? "bg-primary" : "bg-muted"}`}>
-                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${active ? "translate-x-5" : "translate-x-0.5"}`} />
-                  </button>
-                  <span className="text-sm text-muted-foreground">{active ? "On" : "Off"}</span>
-                </div>
+                </section>
+
+                <section className="rounded-xl border border-border/60 bg-muted/10 p-4">
+                  <h3 className="text-sm font-semibold text-foreground">SEO Details</h3>
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground" htmlFor="product-meta-title">Meta Title</label>
+                      <input id="product-meta-title" value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Page title for search engines" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground" htmlFor="product-meta-desc">Meta Description</label>
+                      <textarea id="product-meta-desc" value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} className="mt-1 min-h-[100px] w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Short description for search results" />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground" htmlFor="product-meta-keywords">Meta Keywords</label>
+                      <KeywordTagsInput
+                        id="product-meta-keywords"
+                        value={metaKeywords}
+                        onChange={setMetaKeywords}
+                        placeholder="Type and separate with space/comma"
+                      />
+                    </div>
+                  </div>
+                </section>
               </div>
 
               {status.message ? (
@@ -614,7 +808,7 @@ export default function AdminProducts() {
                 </div>
               ) : null}
 
-              <div className="mt-1 flex items-center gap-3">
+              <div className="mt-5 flex items-center gap-3">
                 <Button
                   testId="button-admin-product-submit"
                   type="submit"
@@ -630,6 +824,7 @@ export default function AdminProducts() {
             </div>
           ) : null}
 
+          {!isFormOpen ? (
           <div className="mt-8">
             <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div className="flex items-baseline justify-between border-b border-border/60 pb-3 sm:border-0 sm:pb-0">
@@ -728,12 +923,16 @@ export default function AdminProducts() {
                       {seoByProductId[item._id] ? (
                         <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">SEO</span>
                       ) : null}
+                      {item.catelog ? (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Catalog</span>
+                      ) : null}
                     </div>
                   </button>
                 ))}
               </div>
             ) : null}
           </div>
+          ) : null}
 
           {selectedId ? (
             <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-4 py-8" onClick={closeDetail} role="dialog" aria-modal="true">
@@ -832,6 +1031,28 @@ export default function AdminProducts() {
                           />
                         </div>
 
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground">Features</label>
+                          <textarea
+                            data-testid="input-admin-product-edit-features"
+                            value={editFeaturesText}
+                            onChange={(e) => setEditFeaturesText(e.target.value)}
+                            className="mt-2 min-h-[84px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                            placeholder={"One per line\nor comma separated"}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground">Specifications</label>
+                          <textarea
+                            data-testid="input-admin-product-edit-specifications"
+                            value={editSpecificationsText}
+                            onChange={(e) => setEditSpecificationsText(e.target.value)}
+                            className="mt-2 min-h-[84px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                            placeholder={"One per line\nor comma separated"}
+                          />
+                        </div>
+
                         <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
                           <p className="mb-2 text-xs font-medium text-muted-foreground">SEO (optional)</p>
                           <div className="space-y-2">
@@ -845,7 +1066,12 @@ export default function AdminProducts() {
                             </div>
                             <div>
                               <label className="text-xs text-muted-foreground">Meta Keywords</label>
-                              <input value={editMetaKeywords} onChange={(e) => setEditMetaKeywords(e.target.value)} className="mt-1 h-9 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="keyword1, keyword2" />
+                              <KeywordTagsInput
+                                id="edit-product-meta-keywords"
+                                value={editMetaKeywords}
+                                onChange={setEditMetaKeywords}
+                                placeholder="Type and separate with space/comma"
+                              />
                             </div>
                           </div>
                         </div>
@@ -867,6 +1093,67 @@ export default function AdminProducts() {
                                   <svg className="mb-1 h-8 w-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z" /></svg>
                                   <span className="text-center text-xs font-medium text-foreground">Drop or click to replace</span>
                                 </>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-muted-foreground">Replace catalog (image/pdf)</label>
+                            <input
+                              ref={editCatalogFileInputRef}
+                              type="file"
+                              accept="image/*,.pdf,application/pdf"
+                              className="sr-only"
+                              onChange={(e) => {
+                                const next = e.target.files?.[0] ?? null;
+                                if (!next || isCatalogType(next)) setEditCatalogFile(next);
+                              }}
+                            />
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => editCatalogFileInputRef.current?.click()}
+                              onKeyDown={(e) => e.key === "Enter" && editCatalogFileInputRef.current?.click()}
+                              onDragOver={(e) => handleCatalogDragOver(e, true)}
+                              onDragLeave={(e) => handleCatalogDragLeave(e, true)}
+                              onDrop={(e) => handleCatalogDrop(e, setEditCatalogFile, true)}
+                              className={`mt-2 flex min-h-[88px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${editCatalogDropActive ? "border-primary bg-primary/5" : "border-border/70 bg-muted/30 hover:border-primary/50 hover:bg-muted/50"}`}
+                            >
+                              {editCatalogFile || detailItem?.catelog ? (
+                                <div className="relative w-full p-2 text-center">
+                                  {editCatalogPreview ? (
+                                    <img src={editCatalogPreview} alt="Catalog preview" className="mx-auto max-h-16 rounded-lg object-contain" />
+                                  ) : detailItem?.catelog && !editCatalogFile ? (
+                                    <a
+                                      href={toPublicUrl(detailItem.catelog)}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="text-xs font-medium text-primary hover:underline"
+                                    >
+                                      Open current catalog
+                                    </a>
+                                  ) : (
+                                    <p className="text-xs font-medium text-foreground">
+                                      {editCatalogFile?.name || "Catalog file uploaded"}
+                                    </p>
+                                  )}
+                                  {editCatalogFile && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditCatalogFile(null);
+                                        if (editCatalogFileInputRef.current) editCatalogFileInputRef.current.value = "";
+                                      }}
+                                      className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-sm text-white transition hover:bg-black/80"
+                                      aria-label="Remove selected catalog"
+                                    >
+                                      ×
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-center text-xs font-medium text-foreground">Drop or click to replace catalog</span>
                               )}
                             </div>
                           </div>
@@ -919,6 +1206,39 @@ export default function AdminProducts() {
                       <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Description</p>
                       <p className="mt-2 text-sm text-foreground">{detailItem.description || "No description."}</p>
                     </div>
+                    {detailItem.catelog ? (
+                      <div className="mt-6">
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Catalog</p>
+                        <a
+                          href={toPublicUrl(detailItem.catelog)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-2 inline-flex text-sm font-medium text-primary hover:underline"
+                        >
+                          Open catalog file
+                        </a>
+                      </div>
+                    ) : null}
+                    {Array.isArray(detailItem.features) && detailItem.features.length > 0 ? (
+                      <div className="mt-6">
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Features</p>
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-foreground">
+                          {detailItem.features.map((entry, idx) => (
+                            <li key={`feature-${idx}-${entry}`}>{entry}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                    {Array.isArray(detailItem.specifications) && detailItem.specifications.length > 0 ? (
+                      <div className="mt-6">
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Specifications</p>
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-foreground">
+                          {detailItem.specifications.map((entry, idx) => (
+                            <li key={`specification-${idx}-${entry}`}>{entry}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
                     {(editMetaTitle || editMetaDescription || editMetaKeywords) ? (
                       <div className="mt-6 rounded-xl border border-border/60 bg-muted/20 p-4">
                         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">SEO</p>

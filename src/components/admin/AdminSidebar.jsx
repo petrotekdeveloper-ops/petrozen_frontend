@@ -23,8 +23,7 @@ export default function AdminSidebar({ className }) {
   return (
     <aside
       className={cn(
-        "flex w-[280px] shrink-0 flex-col border-r border-border/80 bg-card",
-        "h-screen min-h-screen",
+        "fixed inset-y-0 left-0 z-30 flex w-[280px] flex-col border-r border-border/80 bg-card",
         className,
       )}
     >

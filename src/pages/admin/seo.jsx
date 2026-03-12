@@ -3,6 +3,7 @@ import Button from "@/components/Button";
 import { apiClient } from "@/lib/apiClient";
 import AdminShell from "@/components/admin/AdminShell";
 import { Trash2 } from "lucide-react";
+import KeywordTagsInput from "@/components/admin/KeywordTagsInput";
 
 const PAGE_TYPE_LABELS = { static: "Static", category: "Category", subcategory: "Subcategory", product: "Product" };
 
@@ -372,11 +373,11 @@ export default function AdminSeo() {
               </div>
               <div>
                 <label className="text-sm font-medium text-foreground">Meta Keywords</label>
-                <input
+                <KeywordTagsInput
+                  id="add-seo-meta-keywords"
                   value={addMetaKeywords}
-                  onChange={(e) => setAddMetaKeywords(e.target.value)}
-                  className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm"
-                  placeholder="Optional"
+                  onChange={setAddMetaKeywords}
+                  placeholder="Type and separate with space/comma"
                 />
               </div>
             </div>
@@ -437,12 +438,11 @@ export default function AdminSeo() {
                 <label className="text-sm font-medium text-foreground" htmlFor="seo-meta-keywords">
                   Meta Keywords
                 </label>
-                <input
+                <KeywordTagsInput
                   id="seo-meta-keywords"
                   value={editMetaKeywords}
-                  onChange={(e) => setEditMetaKeywords(e.target.value)}
-                  className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="keyword1, keyword2, keyword3"
+                  onChange={setEditMetaKeywords}
+                  placeholder="Type and separate with space/comma"
                 />
               </div>
             </div>

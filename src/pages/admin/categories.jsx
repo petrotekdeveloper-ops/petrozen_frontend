@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Button from "@/components/Button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, X } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import AdminShell from "@/components/admin/AdminShell";
-import logo from "@/assets/logo.png";
+import KeywordTagsInput from "@/components/admin/KeywordTagsInput";
 
 export default function AdminCategories() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -310,59 +310,177 @@ export default function AdminCategories() {
       headerBare
       sectionBare
       actions={
-        <Button
-            testId="button-admin-category-add"
-            variant={isFormOpen ? "secondary" : "primary"}
+        isFormOpen ? (
+          <button
+            type="button"
+            data-testid="button-admin-category-add"
+            aria-label="Close"
             onClick={() => {
               setStatus({ type: "", message: "" });
-              setIsFormOpen((s) => !s);
+              setIsFormOpen((s) => {
+                const next = !s;
+                if (next) closeDetail();
+                return next;
+              });
+            }}
+            className="p-1 text-muted-foreground hover:text-foreground rounded transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="h-5 w-5" aria-hidden />
+          </button>
+        ) : (
+          <Button
+            testId="button-admin-category-add"
+            variant="primary"
+            onClick={() => {
+              setStatus({ type: "", message: "" });
+              setIsFormOpen(true);
+              closeDetail();
             }}
           >
-            {isFormOpen ? "Close" : "Add Category"}
+            Add Category
           </Button>
+        )
       }
     >
       {isFormOpen ? (
-            <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-6 py-8">
+            <div className="mt-8 border-t border-border/60 pt-8">
               <form
                 onSubmit={onSubmit}
-                className="relative z-[60] mx-auto grid w-full max-w-2xl gap-4 rounded-2xl border-2 border-blue-500 bg-card p-4 shadow-xl sm:p-5"
+                className="w-full"
               >
-              <div className="flex items-center gap-3">
-                <img src={logo} alt="" className="h-8 w-8 shrink-0 object-contain" aria-hidden />
-                <h2 className="text-lg font-semibold">Create new category</h2>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-foreground" htmlFor="category-title">
-                  Title
-                </label>
-                <input
-                  id="category-title"
-                  data-testid="input-admin-category-title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="e.g. Valves"
-                />
-              </div>
+              <div className="grid gap-8 lg:grid-cols-2">
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Create new category</h2>
+                  <div>
+                    <label className="text-sm font-medium text-foreground" htmlFor="category-title">
+                      Title
+                    </label>
+                    <input
+                      id="category-title"
+                      data-testid="input-admin-category-title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      placeholder="e.g. Valves"
+                    />
+                  </div>
 
-              <div>
-                <label className="text-sm font-medium text-foreground" htmlFor="category-description">
-                  Description (optional)
-                </label>
-                <textarea
-                  id="category-description"
-                  data-testid="input-admin-category-description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="Short description…"
-                />
-              </div>
+                  <div>
+                    <label className="text-sm font-medium text-foreground" htmlFor="category-description">
+                      Description (optional)
+                    </label>
+                    <textarea
+                      id="category-description"
+                      data-testid="input-admin-category-description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      placeholder="Short description…"
+                    />
+                  </div>
 
-              <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-                <p className="mb-3 text-sm font-medium text-foreground">SEO (optional)</p>
-                <div className="space-y-3">
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Image (optional)</label>
+                    <input
+                      ref={fileInputRef}
+                      id="category-image"
+                      data-testid="input-admin-category-image"
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+                    />
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => fileInputRef.current?.click()}
+                      onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+                      onDragOver={(e) => handleImageDragOver(e, false)}
+                      onDragLeave={(e) => handleImageDragLeave(e, false)}
+                      onDrop={(e) => handleImageDrop(e, setImageFile, false)}
+                      className={`mt-2 flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${
+                        imageDropActive
+                          ? "border-primary bg-primary/5"
+                          : "border-border/70 bg-muted/30 hover:border-primary/50 hover:bg-muted/50"
+                      }`}
+                    >
+                      {imagePreview ? (
+                        <div className="relative w-full p-2">
+                          <img
+                            src={imagePreview}
+                            alt="Preview"
+                            className="mx-auto max-h-24 rounded-lg object-contain"
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setImageFile(null);
+                              fileInputRef.current && (fileInputRef.current.value = "");
+                            }}
+                            className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
+                            aria-label="Remove image"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <svg
+                            className="mb-2 h-10 w-10 text-muted-foreground"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z"
+                            />
+                          </svg>
+                          <span className="text-center text-sm font-medium text-foreground">
+                            Drop image here or click to browse
+                          </span>
+                          <span className="mt-0.5 text-xs text-muted-foreground">
+                            PNG, JPG, WebP up to 5MB
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-foreground">Active</span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={active}
+                      data-testid="input-admin-category-active"
+                      onClick={() => setActive((s) => !s)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                        active ? "bg-primary" : "bg-muted"
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${
+                          active ? "translate-x-5" : "translate-x-0.5"
+                        }`}
+                      />
+                    </button>
+                    <span className="text-sm text-muted-foreground">{active ? "On" : "Off"}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 lg:border-l lg:border-border/60 lg:pl-6">
+                  <h3 className="text-lg font-semibold text-foreground">SEO Details</h3>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground" htmlFor="category-meta-title">Meta Title</label>
                     <input
@@ -379,121 +497,19 @@ export default function AdminCategories() {
                       id="category-meta-desc"
                       value={metaDescription}
                       onChange={(e) => setMetaDescription(e.target.value)}
-                      className="mt-1 min-h-[60px] w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      className="mt-1 min-h-[100px] w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                       placeholder="Short description for search results"
                     />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-muted-foreground" htmlFor="category-meta-keywords">Meta Keywords</label>
-                    <input
+                    <KeywordTagsInput
                       id="category-meta-keywords"
                       value={metaKeywords}
-                      onChange={(e) => setMetaKeywords(e.target.value)}
-                      className="mt-1 h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                      placeholder="keyword1, keyword2, keyword3"
+                      onChange={setMetaKeywords}
+                      placeholder="Type and separate with space/comma"
                     />
                   </div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <label className="text-sm font-medium text-foreground">Image (optional)</label>
-                  <input
-                    ref={fileInputRef}
-                    id="category-image"
-                    data-testid="input-admin-category-image"
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
-                  />
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => fileInputRef.current?.click()}
-                    onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
-                    onDragOver={(e) => handleImageDragOver(e, false)}
-                    onDragLeave={(e) => handleImageDragLeave(e, false)}
-                    onDrop={(e) => handleImageDrop(e, setImageFile, false)}
-                    className={`mt-2 flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${
-                      imageDropActive
-                        ? "border-primary bg-primary/5"
-                        : "border-border/70 bg-muted/30 hover:border-primary/50 hover:bg-muted/50"
-                    }`}
-                  >
-                    {imagePreview ? (
-                      <div className="relative w-full p-2">
-                        <img
-                          src={imagePreview}
-                          alt="Preview"
-                          className="mx-auto max-h-24 rounded-lg object-contain"
-                        />
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setImageFile(null);
-                            fileInputRef.current && (fileInputRef.current.value = "");
-                          }}
-                          className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
-                          aria-label="Remove image"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <svg
-                          className="mb-2 h-10 w-10 text-muted-foreground"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          aria-hidden
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                        <span className="text-center text-sm font-medium text-foreground">
-                          Drop image here or click to browse
-                        </span>
-                        <span className="mt-0.5 text-xs text-muted-foreground">
-                          PNG, JPG, WebP up to 5MB
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-foreground">Active</span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={active}
-                    data-testid="input-admin-category-active"
-                    onClick={() => setActive((s) => !s)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                      active ? "bg-primary" : "bg-muted"
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${
-                        active ? "translate-x-5" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                  <span className="text-sm text-muted-foreground">{active ? "On" : "Off"}</span>
                 </div>
               </div>
 
@@ -510,7 +526,7 @@ export default function AdminCategories() {
                 </div>
               ) : null}
 
-              <div className="mt-1 flex items-center gap-3">
+              <div className="mt-5 flex items-center gap-3">
                 <Button
                   testId="button-admin-category-submit"
                   type="submit"
@@ -534,6 +550,7 @@ export default function AdminCategories() {
             </div>
           ) : null}
 
+          {!isFormOpen ? (
           <div className="mt-8">
             <div className="mb-4 flex items-baseline justify-between border-b border-border/60 pb-3">
               <h2 className="text-lg font-semibold tracking-tight text-foreground">
@@ -603,6 +620,7 @@ export default function AdminCategories() {
               </div>
             ) : null}
           </div>
+          ) : null}
 
           {/* Detail overlay */}
           {selectedId ? (
@@ -687,11 +705,11 @@ export default function AdminCategories() {
                           </div>
                           <div>
                             <label className="text-xs text-muted-foreground">Meta Keywords</label>
-                            <input
+                            <KeywordTagsInput
+                              id="edit-category-meta-keywords"
                               value={editMetaKeywords}
-                              onChange={(e) => setEditMetaKeywords(e.target.value)}
-                              className="mt-1 h-9 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                              placeholder="keyword1, keyword2"
+                              onChange={setEditMetaKeywords}
+                              placeholder="Type and separate with space/comma"
                             />
                           </div>
                         </div>

@@ -30,6 +30,7 @@ export default function AdminShell({
       className="flex min-h-screen bg-background text-foreground"
     >
       <AdminSidebar />
+      <div className="w-[280px] shrink-0" aria-hidden />
 
       <main className="min-w-0 flex-1 overflow-auto">
         <div className="space-y-6 p-6 sm:p-8">

@@ -1,10 +1,14 @@
 import PageLayout from "@/components/PageLayout";
+import SeoHead from "@/components/SeoHead";
 import SectionTitle from "@/components/SectionTitle";
 import { IMAGES } from "@/lib/images";
+import { useSeo } from "@/hooks/useSeo";
 
 const HERO = IMAGES.INDUSTRY_REFINERY;
 
 export default function Certifications() {
+  const { seo } = useSeo("static", "certifications");
+
   return (
     <PageLayout
       testId="page-certifications"
@@ -12,6 +16,13 @@ export default function Certifications() {
       subtitle="Policy-aligned systems for quality, safety, and compliance."
       heroImage={HERO}
     >
+      <SeoHead
+        seo={seo}
+        fallbackTitle="Certifications | Petrozen"
+        fallbackDescription="Review Petrozen certification alignment, quality policy, compliance commitments, and safety-focused delivery principles."
+        fallbackKeywords="petrozen certifications, quality policy, compliance, safety"
+        ogImage={HERO}
+      />
       <section data-testid="section-cert-logos" className="py-16 sm:py-20">
         <div className="container-pad">
           <SectionTitle
