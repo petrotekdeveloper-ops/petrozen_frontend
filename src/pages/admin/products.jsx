@@ -12,13 +12,19 @@ export default function AdminProducts() {
   const [listSubCategories, setListSubCategories] = useState([]);
   const [formCategoryId, setFormCategoryId] = useState("");
   const [formSubCategoryId, setFormSubCategoryId] = useState("");
+  const [formBrandId, setFormBrandId] = useState("");
   const [listCategoryId, setListCategoryId] = useState("");
   const [listSubCategoryId, setListSubCategoryId] = useState("");
   const [items, setItems] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [seoByProductId, setSeoByProductId] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
+  const [metaKeywords, setMetaKeywords] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [active, setActive] = useState(true);
   const [status, setStatus] = useState({ type: "", message: "" });
@@ -28,8 +34,12 @@ export default function AdminProducts() {
   const [editCategoryId, setEditCategoryId] = useState("");
   const [editSubCategories, setEditSubCategories] = useState([]);
   const [editSubCategoryId, setEditSubCategoryId] = useState("");
+  const [editBrandId, setEditBrandId] = useState("");
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editMetaTitle, setEditMetaTitle] = useState("");
+  const [editMetaDescription, setEditMetaDescription] = useState("");
+  const [editMetaKeywords, setEditMetaKeywords] = useState("");
   const [editImageFile, setEditImageFile] = useState(null);
   const [editActive, setEditActive] = useState(true);
   const [editStatus, setEditStatus] = useState({ type: "", message: "" });
@@ -66,6 +76,23 @@ export default function AdminProducts() {
       .catch(() => {
         if (!mounted) return;
         setCategories([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    apiClient
+      .get("/api/brands")
+      .then((res) => {
+        if (!mounted) return;
+        setBrands(res?.data?.items ?? []);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setBrands([]);
       });
     return () => {
       mounted = false;
@@ -124,13 +151,22 @@ export default function AdminProducts() {
     setLoadError("");
     setIsLoading(true);
     try {
-      const res = await apiClient.get("/api/products", {
-        params: maybeSubCategoryId ? { subCategoryId: maybeSubCategoryId } : undefined,
-      });
-      setItems(res?.data?.items ?? []);
+      const [prodRes, seoRes] = await Promise.all([
+        apiClient.get("/api/products", {
+          params: maybeSubCategoryId ? { subCategoryId: maybeSubCategoryId } : undefined,
+        }),
+        apiClient.get("/api/admin/seo?pageType=product").catch(() => ({ data: { items: [] } })),
+      ]);
+      const prods = prodRes?.data?.items ?? [];
+      setItems(prods);
+      const seoItems = seoRes?.data?.items ?? [];
+      const map = {};
+      seoItems.forEach((s) => { map[s.pageKey] = s; });
+      setSeoByProductId(map);
     } catch (err) {
       setLoadError(err?.response?.data?.message || err?.message || "Failed to load products.");
       setItems([]);
+      setSeoByProductId({});
     } finally {
       setIsLoading(false);
     }
@@ -148,8 +184,12 @@ export default function AdminProducts() {
   const resetForm = () => {
     setFormCategoryId("");
     setFormSubCategoryId("");
+    setFormBrandId("");
     setTitle("");
     setDescription("");
+    setMetaTitle("");
+    setMetaDescription("");
+    setMetaKeywords("");
     setImageFile(null);
     setImagePreview(null);
     setActive(true);
@@ -182,8 +222,15 @@ export default function AdminProducts() {
     setDetailError("");
     setDetailLoading(true);
     try {
-      const res = await apiClient.get(`/api/products/${id}`);
-      setDetailItem(res?.data?.item ?? null);
+      const [prodRes, seoRes] = await Promise.all([
+        apiClient.get(`/api/products/${id}`),
+        apiClient.get(`/api/seo/product/${id}`).catch(() => ({ data: { item: null } })),
+      ]);
+      setDetailItem(prodRes?.data?.item ?? null);
+      const seo = seoRes?.data?.item;
+      setEditMetaTitle(seo?.metaTitle ?? "");
+      setEditMetaDescription(seo?.metaDescription ?? "");
+      setEditMetaKeywords(seo?.metaKeywords ?? "");
     } catch (err) {
       setDetailError(err?.response?.data?.message || err?.message || "Failed to load product.");
       setDetailItem(null);
@@ -225,9 +272,11 @@ export default function AdminProducts() {
     const src = item || detailItem;
     const catId = src?.subCategory?.category?._id || "";
     const subId = src?.subCategory?._id || src?.subCategory || "";
+    const brandId = src?.brand?._id || src?.brand || "";
     setEditingId(src?._id || "");
     setEditCategoryId(catId);
     setEditSubCategoryId(subId);
+    setEditBrandId(brandId);
     setEditTitle(src?.title || "");
     setEditDescription(src?.description || "");
     setEditImageFile(null);
@@ -241,8 +290,12 @@ export default function AdminProducts() {
     setEditCategoryId("");
     setEditSubCategories([]);
     setEditSubCategoryId("");
+    setEditBrandId("");
     setEditTitle("");
     setEditDescription("");
+    setEditMetaTitle("");
+    setEditMetaDescription("");
+    setEditMetaKeywords("");
     setEditImageFile(null);
     setEditImagePreview(null);
     setEditActive(true);
@@ -284,14 +337,26 @@ export default function AdminProducts() {
     try {
       const fd = new FormData();
       fd.append("subCategoryId", formSubCategoryId);
+      if (formBrandId) fd.append("brandId", formBrandId);
       fd.append("title", title.trim());
       if (description.trim()) fd.append("description", description.trim());
       fd.append("active", String(active));
       if (imageFile) fd.append("image", imageFile);
 
-      await apiClient.post("/api/products", fd, {
+      const prodRes = await apiClient.post("/api/products", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      const newProd = prodRes?.data?.item;
+
+      if (newProd && (metaTitle || metaDescription || metaKeywords)) {
+        await apiClient.put("/api/admin/seo/upsert", {
+          pageType: "product",
+          pageKey: newProd._id,
+          metaTitle,
+          metaDescription,
+          metaKeywords,
+        });
+      }
 
       setStatus({ type: "success", message: "Product created successfully." });
       await fetchProducts(listSubCategoryId);
@@ -315,6 +380,7 @@ export default function AdminProducts() {
     try {
       const fd = new FormData();
       fd.append("subCategoryId", editSubCategoryId);
+      fd.append("brandId", editBrandId || "");
       fd.append("title", editTitle.trim());
       fd.append("description", editDescription.trim());
       fd.append("active", String(editActive));
@@ -322,6 +388,14 @@ export default function AdminProducts() {
 
       await apiClient.put(`/api/products/${editingId}`, fd, {
         headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      await apiClient.put("/api/admin/seo/upsert", {
+        pageType: "product",
+        pageKey: editingId,
+        metaTitle: editMetaTitle,
+        metaDescription: editMetaDescription,
+        metaKeywords: editMetaKeywords,
       });
 
       setEditStatus({ type: "success", message: "Product updated successfully." });
@@ -378,7 +452,7 @@ export default function AdminProducts() {
     >
 
           {isFormOpen ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-6">
+            <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-6 py-8">
               <form
                 onSubmit={onSubmit}
                 className="relative z-[60] mx-auto grid w-full max-w-2xl gap-4 rounded-2xl border-2 border-blue-500 bg-card p-4 shadow-xl sm:p-5"
@@ -431,6 +505,26 @@ export default function AdminProducts() {
                     ))}
                   </select>
                 </div>
+
+                <div>
+                  <label className="text-sm font-medium text-foreground" htmlFor="product-brand">
+                    Brand (optional)
+                  </label>
+                  <select
+                    id="product-brand"
+                    data-testid="select-admin-product-brand"
+                    value={formBrandId}
+                    onChange={(e) => setFormBrandId(e.target.value)}
+                    className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option value="">No brand</option>
+                    {brands.map((b) => (
+                      <option key={b._id} value={b._id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -459,6 +553,24 @@ export default function AdminProducts() {
                   className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                   placeholder="Short description…"
                 />
+              </div>
+
+              <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                <p className="mb-3 text-sm font-medium text-foreground">SEO (optional)</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground" htmlFor="product-meta-title">Meta Title</label>
+                    <input id="product-meta-title" value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Page title for search engines" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground" htmlFor="product-meta-desc">Meta Description</label>
+                    <textarea id="product-meta-desc" value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} className="mt-1 min-h-[60px] w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Short description for search results" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground" htmlFor="product-meta-keywords">Meta Keywords</label>
+                    <input id="product-meta-keywords" value={metaKeywords} onChange={(e) => setMetaKeywords(e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="keyword1, keyword2, keyword3" />
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -607,6 +719,16 @@ export default function AdminProducts() {
                       )}
                     </div>
                     <span className="w-full truncate text-center text-base font-semibold text-foreground">{item.title}</span>
+                    <div className="flex flex-wrap items-center justify-center gap-1">
+                      {item.brand ? (
+                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                          {item.brand.name}
+                        </span>
+                      ) : null}
+                      {seoByProductId[item._id] ? (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">SEO</span>
+                      ) : null}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -614,7 +736,7 @@ export default function AdminProducts() {
           </div>
 
           {selectedId ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-4" onClick={closeDetail} role="dialog" aria-modal="true">
+            <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-4 py-8" onClick={closeDetail} role="dialog" aria-modal="true">
               <div className="relative z-[60] w-full max-w-lg rounded-2xl border-2 border-blue-500 bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 <button type="button" onClick={closeDetail} className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-muted/80 text-muted-foreground transition hover:bg-muted" aria-label="Close">×</button>
                 {detailLoading ? (
@@ -671,6 +793,23 @@ export default function AdminProducts() {
                               ))}
                             </select>
                         </div>
+
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground">Brand</label>
+                          <select
+                            data-testid="select-admin-product-edit-brand"
+                            value={editBrandId}
+                            onChange={(e) => setEditBrandId(e.target.value)}
+                            className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                          >
+                            <option value="">No brand</option>
+                            {brands.map((b) => (
+                              <option key={b._id} value={b._id}>
+                                {b.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
 
                         <div>
@@ -691,6 +830,24 @@ export default function AdminProducts() {
                             onChange={(e) => setEditDescription(e.target.value)}
                             className="mt-2 min-h-[84px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                           />
+                        </div>
+
+                        <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
+                          <p className="mb-2 text-xs font-medium text-muted-foreground">SEO (optional)</p>
+                          <div className="space-y-2">
+                            <div>
+                              <label className="text-xs text-muted-foreground">Meta Title</label>
+                              <input value={editMetaTitle} onChange={(e) => setEditMetaTitle(e.target.value)} className="mt-1 h-9 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Meta title" />
+                            </div>
+                            <div>
+                              <label className="text-xs text-muted-foreground">Meta Description</label>
+                              <textarea value={editMetaDescription} onChange={(e) => setEditMetaDescription(e.target.value)} className="mt-1 min-h-[56px] w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Meta description" />
+                            </div>
+                            <div>
+                              <label className="text-xs text-muted-foreground">Meta Keywords</label>
+                              <input value={editMetaKeywords} onChange={(e) => setEditMetaKeywords(e.target.value)} className="mt-1 h-9 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="keyword1, keyword2" />
+                            </div>
+                          </div>
                         </div>
 
                         <div className="space-y-3">
@@ -749,6 +906,11 @@ export default function AdminProducts() {
                       <p className="mt-1 text-sm text-muted-foreground">
                         {detailItem.subCategory?.category?.title || "—"} / {detailItem.subCategory?.title || "—"}
                       </p>
+                      {detailItem.brand ? (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Brand: <span className="font-medium text-foreground">{detailItem.brand.name}</span>
+                        </p>
+                      ) : null}
                       <span className={`mt-2 rounded-full px-3 py-0.5 text-xs font-medium ${detailItem.active ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>
                         {detailItem.active ? "Active" : "Inactive"}
                       </span>
@@ -757,6 +919,16 @@ export default function AdminProducts() {
                       <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Description</p>
                       <p className="mt-2 text-sm text-foreground">{detailItem.description || "No description."}</p>
                     </div>
+                    {(editMetaTitle || editMetaDescription || editMetaKeywords) ? (
+                      <div className="mt-6 rounded-xl border border-border/60 bg-muted/20 p-4">
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">SEO</p>
+                        <div className="mt-2 space-y-2 text-sm">
+                          {editMetaTitle ? <div><span className="text-muted-foreground">Meta Title: </span><span className="text-foreground">{editMetaTitle}</span></div> : null}
+                          {editMetaDescription ? <div><span className="text-muted-foreground">Meta Description: </span><span className="text-foreground">{editMetaDescription}</span></div> : null}
+                          {editMetaKeywords ? <div><span className="text-muted-foreground">Meta Keywords: </span><span className="text-foreground">{editMetaKeywords}</span></div> : null}
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="mt-6 flex gap-2 border-t border-border/60 pt-4">
                       <Button variant="secondary" size="sm" data-testid="button-admin-product-edit" onClick={() => startEdit()} className="h-10 w-10 rounded-full p-0" aria-label="Edit product">
                         <Pencil className="h-4 w-4" />
