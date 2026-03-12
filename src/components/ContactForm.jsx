@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Button from "@/components/Button";
+import { apiClient } from "@/lib/apiClient";
 
 const schema = z.object({
   name: z.string().min(2, "Please enter your name"),
@@ -26,9 +28,23 @@ export default function ContactForm({ testId }) {
     },
   });
 
-  const onSubmit = async (_values) => {
-    await new Promise((r) => setTimeout(r, 600));
-    reset();
+  const [submitStatus, setSubmitStatus] = useState({ type: "", message: "" });
+
+  const onSubmit = async (values) => {
+    setSubmitStatus({ type: "", message: "" });
+    try {
+      await apiClient.post("/api/contact", {
+        name: values.name,
+        email: values.email,
+        company: values.company || "",
+        message: values.message,
+      });
+      setSubmitStatus({ type: "success", message: "Message sent successfully. We will get back to you soon." });
+      reset();
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || "Failed to send. Please try again.";
+      setSubmitStatus({ type: "error", message: msg });
+    }
   };
 
   return (
@@ -124,6 +140,18 @@ export default function ContactForm({ testId }) {
         ) : null}
       </div>
 
+      {submitStatus.message ? (
+        <div
+          data-testid="status-submit-contact"
+          className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
+            submitStatus.type === "success"
+              ? "border-green-200 bg-green-50 text-green-700"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
+        >
+          {submitStatus.message}
+        </div>
+      ) : null}
       <div className="mt-6 flex items-center gap-3">
         <Button
           testId="button-submit-contact"
@@ -132,9 +160,9 @@ export default function ContactForm({ testId }) {
         >
           {isSubmitting ? "Sending\u2026" : "Send message"}
         </Button>
-        <div data-testid="text-contact-note" className="text-xs text-muted-foreground">
-          Frontend-only form (no backend submission).
-        </div>
+        <p data-testid="text-contact-note" className="text-xs text-muted-foreground">
+          We typically respond within 1–2 business days.
+        </p>
       </div>
     </form>
   );

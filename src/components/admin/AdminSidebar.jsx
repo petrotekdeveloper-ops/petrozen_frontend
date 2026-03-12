@@ -1,13 +1,16 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.png";
-import { FolderTree, Layers, Package, LogOut } from "lucide-react";
+import { FolderTree, Layers, Package, LogOut, Search, Inbox, Award } from "lucide-react";
 import { clearAdminToken, getAdminToken } from "@/lib/adminAuth";
 
 const navItems = [
   { label: "Categories", href: "/admin/categories", icon: FolderTree },
   { label: "Subcategories", href: "/admin/subcategories", icon: Layers },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Brands", href: "/admin/brands", icon: Award },
+  { label: "Enquiries", href: "/admin/enquiries", icon: Inbox },
+  { label: "SEO", href: "/admin/seo", icon: Search },
 ];
 
 export default function AdminSidebar({ className }) {

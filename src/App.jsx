@@ -21,6 +21,9 @@ import AdminLogin from "@/pages/admin/login";
 import AdminCategories from "@/pages/admin/categories";
 import AdminSubCategories from "@/pages/admin/subcategories";
 import AdminProducts from "@/pages/admin/products";
+import AdminSeo from "@/pages/admin/seo";
+import AdminEnquiries from "@/pages/admin/enquiries";
+import AdminBrands from "@/pages/admin/brands";
 
 function ScrollToTop() {
   const [location] = useLocation();
@@ -48,6 +51,9 @@ function Router() {
         <Route path="/admin/categories" component={AdminCategories} />
         <Route path="/admin/subcategories" component={AdminSubCategories} />
         <Route path="/admin/products" component={AdminProducts} />
+        <Route path="/admin/enquiries" component={AdminEnquiries} />
+        <Route path="/admin/brands" component={AdminBrands} />
+        <Route path="/admin/seo" component={AdminSeo} />
         <Route component={NotFound} />
       </Switch>
     </>
