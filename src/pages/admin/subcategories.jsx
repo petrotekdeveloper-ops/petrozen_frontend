@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Button from "@/components/Button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, X } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import AdminShell from "@/components/admin/AdminShell";
-import logo from "@/assets/logo.png";
+import KeywordTagsInput from "@/components/admin/KeywordTagsInput";
 
 export default function AdminSubCategories() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -341,34 +341,45 @@ export default function AdminSubCategories() {
       headerBare
       sectionBare
       actions={
-        <Button
-            testId="button-admin-subcategory-add"
-            variant={isFormOpen ? "secondary" : "primary"}
+        isFormOpen ? (
+          <button
+            type="button"
+            data-testid="button-admin-subcategory-add"
+            aria-label="Close"
             onClick={() => {
               setStatus({ type: "", message: "" });
-              setIsFormOpen((s) => !s);
+              setIsFormOpen(false);
+            }}
+            className="p-1 text-muted-foreground hover:text-foreground rounded transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="h-5 w-5" aria-hidden />
+          </button>
+        ) : (
+          <Button
+            testId="button-admin-subcategory-add"
+            variant="primary"
+            onClick={() => {
+              setStatus({ type: "", message: "" });
+              setIsFormOpen(true);
+              closeDetail();
             }}
           >
-            {isFormOpen ? "Close" : "Add Subcategory"}
+            Add Subcategory
           </Button>
+        )
       }
     >
 
           {isFormOpen ? (
-            <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-6 py-8">
-              <form
-                onSubmit={onSubmit}
-                className="relative z-[60] mx-auto grid w-full max-w-2xl gap-4 rounded-2xl border-2 border-blue-500 bg-card p-4 shadow-xl sm:p-5"
-                onClick={(e) => e.stopPropagation()}
-              >
-              <div className="flex items-center gap-3">
-                <img src={logo} alt="" className="h-8 w-8 shrink-0 object-contain" aria-hidden />
-                <h2 className="text-lg font-semibold">Create new subcategory</h2>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-foreground" htmlFor="subcategory-category">
-                  Category
-                </label>
+            <div className="mt-8 border-t border-border/60 pt-8">
+              <form onSubmit={onSubmit} className="w-full">
+              <div className="grid gap-8 lg:grid-cols-2">
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Create new subcategory</h2>
+                  <div>
+                    <label className="text-sm font-medium text-foreground" htmlFor="subcategory-category">
+                      Category
+                    </label>
                 <select
                   id="subcategory-category"
                   data-testid="select-admin-subcategory-category"
@@ -377,18 +388,18 @@ export default function AdminSubCategories() {
                   className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="">Select a category…</option>
-                  {categories.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                    {categories.map((c) => (
+                      <option key={c._id} value={c._id}>
+                        {c.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="text-sm font-medium text-foreground" htmlFor="subcategory-title">
-                  Title
-                </label>
+                <div>
+                  <label className="text-sm font-medium text-foreground" htmlFor="subcategory-title">
+                    Title
+                  </label>
                 <input
                   id="subcategory-title"
                   data-testid="input-admin-subcategory-title"
@@ -396,13 +407,13 @@ export default function AdminSubCategories() {
                   onChange={(e) => setTitle(e.target.value)}
                   className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                   placeholder="e.g. Gate Valves"
-                />
-              </div>
+                  />
+                </div>
 
-              <div>
-                <label className="text-sm font-medium text-foreground" htmlFor="subcategory-description">
-                  Description (optional)
-                </label>
+                <div>
+                  <label className="text-sm font-medium text-foreground" htmlFor="subcategory-description">
+                    Description (optional)
+                  </label>
                 <textarea
                   id="subcategory-description"
                   data-testid="input-admin-subcategory-description"
@@ -410,28 +421,9 @@ export default function AdminSubCategories() {
                   onChange={(e) => setDescription(e.target.value)}
                   className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                   placeholder="Short description…"
-                />
-              </div>
-
-              <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-                <p className="mb-3 text-sm font-medium text-foreground">SEO (optional)</p>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground" htmlFor="subcategory-meta-title">Meta Title</label>
-                    <input id="subcategory-meta-title" value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Page title for search engines" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground" htmlFor="subcategory-meta-desc">Meta Description</label>
-                    <textarea id="subcategory-meta-desc" value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} className="mt-1 min-h-[60px] w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Short description for search results" />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-muted-foreground" htmlFor="subcategory-meta-keywords">Meta Keywords</label>
-                    <input id="subcategory-meta-keywords" value={metaKeywords} onChange={(e) => setMetaKeywords(e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="keyword1, keyword2, keyword3" />
-                  </div>
+                  />
                 </div>
-              </div>
 
-              <div className="space-y-3">
                 <div>
                   <label className="text-sm font-medium text-foreground">Image (optional)</label>
                   <input ref={fileInputRef} id="subcategory-image" data-testid="input-admin-subcategory-image" type="file" accept="image/*" className="sr-only" onChange={(e) => setImageFile(e.target.files?.[0] ?? null)} />
@@ -457,6 +449,28 @@ export default function AdminSubCategories() {
                   </button>
                   <span className="text-sm text-muted-foreground">{active ? "On" : "Off"}</span>
                 </div>
+                </div>
+
+                <div className="space-y-3 lg:border-l lg:border-border/60 lg:pl-6">
+                  <h3 className="text-lg font-semibold text-foreground">SEO Details</h3>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground" htmlFor="subcategory-meta-title">Meta Title</label>
+                    <input id="subcategory-meta-title" value={metaTitle} onChange={(e) => setMetaTitle(e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Page title for search engines" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground" htmlFor="subcategory-meta-desc">Meta Description</label>
+                    <textarea id="subcategory-meta-desc" value={metaDescription} onChange={(e) => setMetaDescription(e.target.value)} className="mt-1 min-h-[100px] w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Short description for search results" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground" htmlFor="subcategory-meta-keywords">Meta Keywords</label>
+                    <KeywordTagsInput
+                      id="subcategory-meta-keywords"
+                      value={metaKeywords}
+                      onChange={setMetaKeywords}
+                      placeholder="Type and separate with space/comma"
+                    />
+                  </div>
+                </div>
               </div>
 
               {status.message ? (
@@ -472,7 +486,7 @@ export default function AdminSubCategories() {
                 </div>
               ) : null}
 
-              <div className="mt-1 flex items-center gap-3">
+              <div className="mt-5 flex items-center gap-3">
                 <Button
                   testId="button-admin-subcategory-submit"
                   type="submit"
@@ -488,6 +502,7 @@ export default function AdminSubCategories() {
             </div>
           ) : null}
 
+          {!isFormOpen ? (
           <div className="mt-8">
             <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div className="flex items-baseline justify-between border-b border-border/60 pb-3 sm:border-0 sm:pb-0">
@@ -564,6 +579,7 @@ export default function AdminSubCategories() {
               </div>
             ) : null}
           </div>
+          ) : null}
 
           {selectedId ? (
             <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-4 py-8" onClick={closeDetail} role="dialog" aria-modal="true">
@@ -632,7 +648,12 @@ export default function AdminSubCategories() {
                             </div>
                             <div>
                               <label className="text-xs text-muted-foreground">Meta Keywords</label>
-                              <input value={editMetaKeywords} onChange={(e) => setEditMetaKeywords(e.target.value)} className="mt-1 h-9 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="keyword1, keyword2" />
+                              <KeywordTagsInput
+                                id="edit-subcategory-meta-keywords"
+                                value={editMetaKeywords}
+                                onChange={setEditMetaKeywords}
+                                placeholder="Type and separate with space/comma"
+                              />
                             </div>
                           </div>
                         </div>

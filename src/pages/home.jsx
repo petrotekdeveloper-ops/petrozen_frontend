@@ -5,8 +5,10 @@ import SectionTitle from "@/components/SectionTitle";
 import ServiceCard from "@/components/ServiceCard";
 import ImageCard from "@/components/ImageCard";
 import Button from "@/components/Button";
+import SeoHead from "@/components/SeoHead";
 import { IMAGES } from "@/lib/images";
 import { toast } from "@/hooks/use-toast";
+import { useSeo } from "@/hooks/useSeo";
 import HERO_TEST_1 from "../assets/images/heroTest1.jpeg";
 
 import { Download } from "lucide-react";
@@ -51,6 +53,7 @@ const SERVICE_CARDS = [
 
 export default function Home() {
   const [isAtTop, setIsAtTop] = useState(true);
+  const { seo } = useSeo("static", "home");
 
   const handleBrochureDownloadClick = () => {
     toast({
@@ -96,6 +99,13 @@ export default function Home() {
 
   return (
     <PageLayout testId="page-home">
+      <SeoHead
+        seo={seo}
+        fallbackTitle="Petrozen | Oil & Gas Equipment Supplier"
+        fallbackDescription="Petrozen provides certified oil and gas equipment and industrial solutions across the UAE and GCC with a focus on quality, safety, and reliable delivery."
+        fallbackKeywords="petrozen, oil and gas equipment, industrial solutions, uae, gcc"
+        ogImage={HERO}
+      />
       <section
         data-testid="section-hero"
         className="relative overflow-hidden h-screen h-[100svh]"

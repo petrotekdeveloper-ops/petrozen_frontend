@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import PageLayout from "@/components/PageLayout";
+import SeoHead from "@/components/SeoHead";
 import SectionTitle from "@/components/SectionTitle";
 import { apiClient } from "@/lib/apiClient";
 import { HERO_URLS } from "@/lib/images";
 import { IMAGES } from "@/lib/images";
+import { useSeo } from "@/hooks/useSeo";
 
 const HERO = HERO_URLS.OIL_GAS || IMAGES.HERO_OIL_GAS;
 
@@ -17,6 +19,7 @@ function toPublicUrl(maybePath) {
 }
 
 export default function Category() {
+  const { seo } = useSeo("static", "products");
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -65,6 +68,13 @@ export default function Category() {
 
   return (
     <PageLayout testId="page-products" title="Products" subtitle="Explore our industrial equipment and solutions by category." heroImage={HERO} heroTitleFont="sans">
+      <SeoHead
+        seo={seo}
+        fallbackTitle="Product Categories | Petrozen"
+        fallbackDescription="Browse Petrozen product categories and discover industrial equipment solutions tailored for oil and gas operations."
+        fallbackKeywords="petrozen products, product categories, industrial equipment"
+        ogImage={HERO}
+      />
       <section data-testid="section-products-categories" className="py-16 sm:py-20">
         <div className="container-pad reveal" data-reveal="up">
           <SectionTitle testId="title-products" eyebrow="Browse by category" title="Product categories" titleFont="sans" />

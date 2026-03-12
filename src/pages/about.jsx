@@ -1,11 +1,15 @@
 import { useEffect } from "react";
 import PageLayout from "@/components/PageLayout";
+import SeoHead from "@/components/SeoHead";
 import SectionTitle from "@/components/SectionTitle";
 import { IMAGES } from "@/lib/images";
+import { useSeo } from "@/hooks/useSeo";
 
 const HERO = IMAGES.ABOUT_HERO;
 
 export default function About() {
+  const { seo } = useSeo("static", "about");
+
   useEffect(() => {
     const elements = Array.from(document.querySelectorAll("[data-reveal]"));
     if (elements.length === 0) return;
@@ -42,6 +46,13 @@ export default function About() {
       heroImage={HERO}
       heroTitleFont="sans"
     >
+      <SeoHead
+        seo={seo}
+        fallbackTitle="About Petrozen | Oil & Gas Partner"
+        fallbackDescription="Learn about Petrozen, a UAE-based oil and gas equipment supplier focused on quality systems, compliance, and dependable industrial delivery."
+        fallbackKeywords="about petrozen, oil and gas uae, industrial partner"
+        ogImage={HERO}
+      />
       <section data-testid="section-company-overview" className="py-16 sm:py-20">
         <div className="container-pad">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">

@@ -1,13 +1,14 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.png";
-import { FolderTree, Layers, Package, LogOut, Search, Inbox } from "lucide-react";
+import { FolderTree, Layers, Package, LogOut, Search, Inbox, Award } from "lucide-react";
 import { clearAdminToken, getAdminToken } from "@/lib/adminAuth";
 
 const navItems = [
   { label: "Categories", href: "/admin/categories", icon: FolderTree },
   { label: "Subcategories", href: "/admin/subcategories", icon: Layers },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Brands", href: "/admin/brands", icon: Award },
   { label: "Enquiries", href: "/admin/enquiries", icon: Inbox },
   { label: "SEO", href: "/admin/seo", icon: Search },
 ];
@@ -22,8 +23,7 @@ export default function AdminSidebar({ className }) {
   return (
     <aside
       className={cn(
-        "flex w-[280px] shrink-0 flex-col border-r border-border/80 bg-card",
-        "h-screen min-h-screen",
+        "fixed inset-y-0 left-0 z-30 flex w-[280px] flex-col border-r border-border/80 bg-card",
         className,
       )}
     >

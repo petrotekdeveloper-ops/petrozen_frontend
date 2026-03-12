@@ -1,8 +1,10 @@
 import { useEffect } from "react";
 import PageLayout from "@/components/PageLayout";
+import SeoHead from "@/components/SeoHead";
 import SectionTitle from "@/components/SectionTitle";
 import Button from "@/components/Button";
 import { IMAGES } from "@/lib/images";
+import { useSeo } from "@/hooks/useSeo";
 
 import {
   AlertCircle,
@@ -16,6 +18,8 @@ import {
 const HERO = IMAGES.SERVICES_HERO;
 
 export default function Services() {
+  const { seo } = useSeo("static", "services");
+
   useEffect(() => {
     const elements = Array.from(document.querySelectorAll("[data-reveal]"));
     if (elements.length === 0) return;
@@ -52,6 +56,13 @@ export default function Services() {
       heroImage={HERO}
       heroTitleFont="sans"
     >
+      <SeoHead
+        seo={seo}
+        fallbackTitle="Services | Petrozen"
+        fallbackDescription="Explore Petrozen services including compressor maintenance, vacuum pump support, CNC services, and preventive maintenance programs."
+        fallbackKeywords="petrozen services, compressor service uae, vacuum pump service, cnc service"
+        ogImage={HERO}
+      />
       <section data-testid="section-service-cards" className="py-16 sm:py-20">
         <div className="container-pad reveal" data-reveal="up">
           <SectionTitle
