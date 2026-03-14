@@ -41,7 +41,7 @@ export default function SectionTitle({
             descriptionClassName,
           )}
         >
-          {typeof description === "string" ? <p>{description}</p> : description}
+          {typeof description === "string" ? <p className="whitespace-pre-line">{description}</p> : description}
         </div>
       ) : null}
     </div>

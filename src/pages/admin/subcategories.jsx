@@ -4,6 +4,7 @@ import { Pencil, Trash2, X } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import AdminShell from "@/components/admin/AdminShell";
 import KeywordTagsInput from "@/components/admin/KeywordTagsInput";
+import { IMAGES } from "@/lib/images";
 
 export default function AdminSubCategories() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -550,27 +551,21 @@ export default function AdminSubCategories() {
             ) : null}
 
             {!isLoading && !loadError && items.length > 0 ? (
-              <div className="mt-4 grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                 {items.map((item) => (
                   <button
                     key={item._id}
                     type="button"
                     data-testid={`card-admin-subcategory-${item._id}`}
                     onClick={() => setSelectedId(item._id)}
-                    className={`group flex flex-col items-center gap-4 rounded-2xl border-2 bg-card p-6 text-left shadow-sm transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                    className={`group flex flex-col items-center gap-3 rounded-xl border-2 bg-card p-4 text-left shadow-sm transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
                       selectedId === item._id ? "border-primary shadow-lg ring-2 ring-primary/20" : "border-border/60 hover:border-primary/40"
                     }`}
                   >
-                    <div className="flex h-40 w-40 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-muted shadow-inner">
-                      {item.imageUrl ? (
-                        <img src={toPublicUrl(item.imageUrl)} alt="" className="h-full w-full object-contain p-2 transition-transform group-hover:scale-105" loading="lazy" />
-                      ) : (
-                        <svg className="h-20 w-20 text-muted-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
-                        </svg>
-                      )}
+                    <div className="flex h-44 w-44 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted shadow-inner">
+                      <img src={toPublicUrl(item.imageUrl) || IMAGES.LOGO} alt="" className="h-full w-full object-contain p-2 transition-transform group-hover:scale-105" loading="lazy" />
                     </div>
-                    <span className="w-full truncate text-center text-base font-semibold text-foreground">{item.title}</span>
+                    <span className="w-full truncate text-center text-sm font-semibold text-foreground">{item.title}</span>
                     {seoBySubcategoryId[item._id] ? (
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">SEO</span>
                     ) : null}
@@ -702,13 +697,7 @@ export default function AdminSubCategories() {
                   <div className="p-6 pt-12">
                     <div className="flex flex-col items-center">
                       <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl bg-muted">
-                        {detailItem.imageUrl ? (
-                          <img src={toPublicUrl(detailItem.imageUrl)} alt="" className="h-full w-full object-contain p-2" />
-                        ) : (
-                          <svg className="h-14 w-14 text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
-                          </svg>
-                        )}
+                        <img src={toPublicUrl(detailItem.imageUrl) || IMAGES.LOGO} alt="" className="h-full w-full object-contain p-2" />
                       </div>
                       <h3 className="mt-4 text-xl font-semibold text-foreground">{detailItem.title}</h3>
                       <span className={`mt-2 rounded-full px-3 py-0.5 text-xs font-medium ${detailItem.active ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"}`}>
