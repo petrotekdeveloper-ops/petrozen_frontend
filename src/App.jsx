@@ -42,9 +42,9 @@ function Router() {
         <Route path="/about" component={About} />
         <Route path="/services" component={Services} />
         <Route path="/certifications" component={Certifications} />
-        <Route path="/products/:categoryId/:subcategoryId/:productId" component={Product} />
-        <Route path="/products/:categoryId/:subcategoryId" component={Product} />
-        <Route path="/products/:categoryId" component={Subcategory} />
+        <Route path="/products/:categorySlug/:subcategorySlug/:productSlug" component={Product} />
+        <Route path="/products/:categorySlug/:subcategorySlug" component={Product} />
+        <Route path="/products/:categorySlug" component={Subcategory} />
         <Route path="/products" component={Category} />
         <Route path="/contact" component={Contact} />
         <Route path="/privacy" component={Privacy} />
