@@ -8,8 +8,6 @@ import { HERO_URLS } from "@/lib/images";
 import { IMAGES } from "@/lib/images";
 import { useSeo } from "@/hooks/useSeo";
 import { toSlug } from "@/lib/slug";
-import { sortByCreatedAtAsc } from "@/lib/utils";
-
 const HERO = HERO_URLS.OIL_GAS || IMAGES.HERO_OIL_GAS;
 
 function toPublicUrl(maybePath) {
@@ -57,7 +55,7 @@ export default function Category() {
     apiClient.get("/api/categories", { params: { active: true } })
       .then((res) => {
         if (!mounted) return;
-        setCategories(sortByCreatedAtAsc(res?.data?.items ?? []));
+        setCategories(res?.data?.items ?? []);
       })
       .catch(() => {
         if (!mounted) return;

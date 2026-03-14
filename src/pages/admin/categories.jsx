@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Button from "@/components/Button";
-import { Pencil, Trash2, X } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, X } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import AdminShell from "@/components/admin/AdminShell";
 import KeywordTagsInput from "@/components/admin/KeywordTagsInput";
@@ -18,6 +18,7 @@ export default function AdminCategories() {
   const [metaDescription, setMetaDescription] = useState("");
   const [metaKeywords, setMetaKeywords] = useState("");
   const [imageFile, setImageFile] = useState(null);
+  const [sort, setSort] = useState("");
   const [active, setActive] = useState(true);
   const [status, setStatus] = useState({ type: "", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,6 +30,7 @@ export default function AdminCategories() {
   const [editMetaDescription, setEditMetaDescription] = useState("");
   const [editMetaKeywords, setEditMetaKeywords] = useState("");
   const [editImageFile, setEditImageFile] = useState(null);
+  const [editSort, setEditSort] = useState("");
   const [editActive, setEditActive] = useState(true);
   const [editStatus, setEditStatus] = useState({ type: "", message: "" });
   const [isUpdating, setIsUpdating] = useState(false);
@@ -39,6 +41,7 @@ export default function AdminCategories() {
   const [editImageDropActive, setEditImageDropActive] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [detailItem, setDetailItem] = useState(null);
+  const [detailSubcategories, setDetailSubcategories] = useState([]);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
   const fileInputRef = useRef(null);
@@ -83,17 +86,22 @@ export default function AdminCategories() {
   const fetchCategoryDetail = async (id) => {
     if (!id) {
       setDetailItem(null);
+      setDetailSubcategories([]);
       setDetailError("");
       return;
     }
     setDetailError("");
     setDetailLoading(true);
     try {
-      const [catRes, seoRes] = await Promise.all([
+      const [catRes, seoRes, subRes] = await Promise.all([
         apiClient.get(`/api/categories/${id}`),
         apiClient.get(`/api/seo/category/${id}`).catch(() => ({ data: { item: null } })),
+        apiClient.get("/api/subcategories", { params: { categoryId: id } }).catch(() => ({ data: { items: [] } })),
       ]);
-      setDetailItem(catRes?.data?.item ?? null);
+      const cat = catRes?.data?.item ?? null;
+      setDetailItem(cat);
+      setDetailSubcategories(subRes?.data?.items ?? []);
+      setEditSort(cat?.sort ?? "");
       const seo = seoRes?.data?.item;
       setEditMetaTitle(seo?.metaTitle ?? "");
       setEditMetaDescription(seo?.metaDescription ?? "");
@@ -101,6 +109,7 @@ export default function AdminCategories() {
     } catch (err) {
       setDetailError(err?.response?.data?.message || err?.message || "Failed to load category.");
       setDetailItem(null);
+      setDetailSubcategories([]);
     } finally {
       setDetailLoading(false);
     }
@@ -111,6 +120,7 @@ export default function AdminCategories() {
       fetchCategoryDetail(selectedId);
     } else {
       setDetailItem(null);
+      setDetailSubcategories([]);
       setDetailError("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -123,6 +133,7 @@ export default function AdminCategories() {
   const resetForm = () => {
     setTitle("");
     setDescription("");
+    setSort("");
     setMetaTitle("");
     setMetaDescription("");
     setMetaKeywords("");
@@ -150,20 +161,28 @@ export default function AdminCategories() {
   }, [editImageFile]);
 
   const startEdit = (item) => {
-    setEditingId(item?._id || detailItem?._id || "");
+    const id = item?._id || detailItem?._id || "";
+    setEditingId(id);
     const src = item || detailItem;
     setEditTitle(src?.title || "");
     setEditDescription(src?.description || "");
+    setEditSort(src?.sort ?? "");
     setEditImageFile(null);
     setEditActive(Boolean(src?.active));
     setEditStatus({ type: "", message: "" });
-    // editMetaTitle/Description/Keywords are set by fetchCategoryDetail when detail loads
+    const seo = seoByCategoryId[id];
+    if (seo) {
+      setEditMetaTitle(seo.metaTitle ?? "");
+      setEditMetaDescription(seo.metaDescription ?? "");
+      setEditMetaKeywords(seo.metaKeywords ?? "");
+    }
   };
 
   const cancelEdit = () => {
     setEditingId("");
     setEditTitle("");
     setEditDescription("");
+    setEditSort("");
     setEditMetaTitle("");
     setEditMetaDescription("");
     setEditMetaKeywords("");
@@ -171,11 +190,6 @@ export default function AdminCategories() {
     setEditImagePreview(null);
     setEditActive(true);
     setEditStatus({ type: "", message: "" });
-  };
-
-  const closeDetail = () => {
-    setSelectedId(null);
-    cancelEdit();
   };
 
   const handleImageDrop = (e, setFile, isEdit) => {
@@ -209,6 +223,7 @@ export default function AdminCategories() {
       const fd = new FormData();
       fd.append("title", title.trim());
       if (description.trim()) fd.append("description", description.trim());
+      if (sort.trim()) fd.append("sort", sort.trim());
       fd.append("active", String(active));
       if (imageFile) fd.append("image", imageFile);
 
@@ -252,6 +267,7 @@ export default function AdminCategories() {
       const fd = new FormData();
       fd.append("title", editTitle.trim());
       fd.append("description", editDescription.trim());
+      fd.append("sort", (editSort || "").trim());
       fd.append("active", String(editActive));
       if (editImageFile) fd.append("image", editImageFile);
 
@@ -269,7 +285,7 @@ export default function AdminCategories() {
 
       setEditStatus({ type: "success", message: "Category updated successfully." });
       await fetchCategories();
-      if (selectedId === editingId) fetchCategoryDetail(editingId);
+      await fetchCategoryDetail(editingId);
       cancelEdit();
     } catch (err) {
       const message =
@@ -293,7 +309,7 @@ export default function AdminCategories() {
       await apiClient.delete(`/api/categories/${id}`);
       await fetchCategories();
       if (editingId === id) cancelEdit();
-      if (selectedId === id) closeDetail();
+      if (selectedId === id) setSelectedId(null);
     } catch (err) {
       const message =
         err?.response?.data?.message || err?.message || "Failed to delete category.";
@@ -318,16 +334,33 @@ export default function AdminCategories() {
             aria-label="Close"
             onClick={() => {
               setStatus({ type: "", message: "" });
-              setIsFormOpen((s) => {
-                const next = !s;
-                if (next) closeDetail();
-                return next;
-              });
+              setIsFormOpen(false);
+              resetForm();
             }}
             className="p-1 text-muted-foreground hover:text-foreground rounded transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="h-5 w-5" aria-hidden />
           </button>
+        ) : editingId ? (
+          <Button
+            variant="ghost"
+            data-testid="button-admin-category-cancel-edit"
+            onClick={() => {
+              setEditStatus({ type: "", message: "" });
+              cancelEdit();
+            }}
+          >
+            Cancel edit
+          </Button>
+        ) : selectedId ? (
+          <Button
+            variant="ghost"
+            data-testid="button-admin-category-back"
+            onClick={() => setSelectedId(null)}
+          >
+            <ArrowLeft className="h-4 w-4 mr-1.5" aria-hidden />
+            Back to list
+          </Button>
         ) : (
           <Button
             testId="button-admin-category-add"
@@ -335,7 +368,8 @@ export default function AdminCategories() {
             onClick={() => {
               setStatus({ type: "", message: "" });
               setIsFormOpen(true);
-              closeDetail();
+              cancelEdit();
+              setSelectedId(null);
             }}
           >
             Add Category
@@ -377,6 +411,20 @@ export default function AdminCategories() {
                       onChange={(e) => setDescription(e.target.value)}
                       className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                       placeholder="Short description…"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground" htmlFor="category-sort">
+                      Sort order (optional)
+                    </label>
+                    <input
+                      id="category-sort"
+                      data-testid="input-admin-category-sort"
+                      value={sort}
+                      onChange={(e) => setSort(e.target.value)}
+                      className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      placeholder="e.g. 1, 2, 3 (lower = first)"
                     />
                   </div>
 
@@ -551,7 +599,327 @@ export default function AdminCategories() {
             </div>
           ) : null}
 
-          {!isFormOpen ? (
+          {selectedId && !editingId && !isFormOpen ? (
+            <div className="mt-8 border-t border-border/60 pt-8">
+              <div className="grid gap-8 lg:grid-cols-2">
+                {detailLoading ? (
+                  <div className="col-span-2 flex flex-col items-center justify-center py-16 text-muted-foreground">
+                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    <p className="mt-3 text-sm">Loading…</p>
+                  </div>
+                ) : detailError ? (
+                  <div className="col-span-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {detailError}
+                  </div>
+                ) : detailItem ? (
+                  <>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={toPublicUrl(detailItem.imageUrl) || IMAGES.LOGO}
+                          alt=""
+                          className="h-56 w-56 shrink-0 rounded-2xl object-contain"
+                        />
+                        <div>
+                          <h2 className="text-xl font-semibold text-foreground">{detailItem.title}</h2>
+                          <span
+                            className={`mt-2 inline-block rounded-full px-3 py-0.5 text-xs font-medium ${
+                              detailItem.active ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {detailItem.active ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Description</p>
+                        <p className="mt-1 text-sm text-foreground">{detailItem.description || "No description."}</p>
+                      </div>
+                      {detailItem.sort ? (
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Sort order</p>
+                          <p className="mt-1 text-sm text-foreground">{detailItem.sort}</p>
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="space-y-3 lg:border-l lg:border-border/60 lg:pl-6">
+                      <p className="text-sm font-medium text-muted-foreground">SEO</p>
+                      {editMetaTitle || editMetaDescription || editMetaKeywords ? (
+                        <div className="space-y-2 text-sm">
+                          {editMetaTitle ? <div><span className="text-muted-foreground">Meta Title: </span><span className="text-foreground">{editMetaTitle}</span></div> : null}
+                          {editMetaDescription ? <div><span className="text-muted-foreground">Meta Description: </span><span className="text-foreground">{editMetaDescription}</span></div> : null}
+                          {editMetaKeywords ? <div><span className="text-muted-foreground">Meta Keywords: </span><span className="text-foreground">{editMetaKeywords}</span></div> : null}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">No SEO data configured.</p>
+                      )}
+                    </div>
+                  </>
+                ) : null}
+              </div>
+
+              {detailItem && !detailLoading && !detailError ? (
+                <div className="mt-6 flex items-center gap-3 border-t border-border/60 pt-6">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    data-testid="button-admin-category-edit"
+                    onClick={() => startEdit(detailItem)}
+                  >
+                    <Pencil className="h-4 w-4 mr-1.5" aria-hidden />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    data-testid="button-admin-category-delete"
+                    disabled={deletingId === selectedId}
+                    className="border-red-200/80 text-red-600 hover:bg-red-50"
+                    onClick={() => onDelete(selectedId)}
+                    aria-label={deletingId === selectedId ? "Deleting…" : "Delete category"}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1.5" aria-hidden />
+                    Delete
+                  </Button>
+                </div>
+              ) : null}
+
+              {detailItem && !detailLoading && !detailError && detailSubcategories.length > 0 ? (
+                <div className="mt-8 border-t border-border/60 pt-6">
+                  <h3 className="text-sm font-semibold text-foreground mb-3">Subcategories under this category</h3>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                    {detailSubcategories.map((sub) => (
+                      <div
+                        key={sub._id}
+                        className="flex flex-col items-center gap-2 rounded-xl border border-border/60 bg-muted/10 p-4"
+                      >
+                        <img
+                          src={toPublicUrl(sub.imageUrl) || IMAGES.LOGO}
+                          alt=""
+                          className="h-32 w-32 shrink-0 rounded-lg object-contain"
+                        />
+                        <span className="w-full truncate text-center text-sm font-medium text-foreground">{sub.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : detailItem && !detailLoading && !detailError ? (
+                <div className="mt-8 border-t border-border/60 pt-6">
+                  <p className="text-sm text-muted-foreground">No subcategories under this category.</p>
+                </div>
+              ) : null}
+            </div>
+          ) : editingId && !isFormOpen ? (
+            <div className="mt-8 border-t border-border/60 pt-8">
+              <form onSubmit={onUpdate} className="w-full">
+                <div className="grid gap-8 lg:grid-cols-2">
+                  <div className="space-y-4">
+                    <h2 className="text-xl font-semibold">Edit category</h2>
+                    <div>
+                      <label className="text-sm font-medium text-foreground" htmlFor="edit-category-title">
+                        Title
+                      </label>
+                      <input
+                        id="edit-category-title"
+                        data-testid="input-admin-category-edit-title"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="e.g. Valves"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground" htmlFor="edit-category-description">
+                        Description (optional)
+                      </label>
+                      <textarea
+                        id="edit-category-description"
+                        data-testid="input-admin-category-edit-description"
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="Short description…"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground" htmlFor="edit-category-sort">
+                        Sort order (optional)
+                      </label>
+                      <input
+                        id="edit-category-sort"
+                        data-testid="input-admin-category-edit-sort"
+                        value={editSort}
+                        onChange={(e) => setEditSort(e.target.value)}
+                        className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="e.g. 1, 2, 3 (lower = first)"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground">Image (optional)</label>
+                      <input
+                        ref={editFileInputRef}
+                        id="edit-category-image"
+                        data-testid="input-admin-category-edit-image"
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={(e) => setEditImageFile(e.target.files?.[0] ?? null)}
+                      />
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => editFileInputRef.current?.click()}
+                        onKeyDown={(e) => e.key === "Enter" && editFileInputRef.current?.click()}
+                        onDragOver={(e) => handleImageDragOver(e, true)}
+                        onDragLeave={(e) => handleImageDragLeave(e, true)}
+                        onDrop={(e) => handleImageDrop(e, setEditImageFile, true)}
+                        className={`mt-2 flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${
+                          editImageDropActive
+                            ? "border-primary bg-primary/5"
+                            : "border-border/70 bg-muted/30 hover:border-primary/50 hover:bg-muted/50"
+                        }`}
+                      >
+                        {editImagePreview || detailItem?.imageUrl ? (
+                          <div className="relative w-full p-2">
+                            <img
+                              src={editImagePreview || toPublicUrl((items.find((i) => i._id === editingId) || detailItem)?.imageUrl)}
+                              alt="Preview"
+                              className="mx-auto max-h-24 rounded-lg object-contain"
+                            />
+                            {editImageFile && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditImageFile(null);
+                                  editFileInputRef.current && (editFileInputRef.current.value = "");
+                                }}
+                                className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80"
+                                aria-label="Remove image"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            <svg
+                              className="mb-2 h-10 w-10 text-muted-foreground"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              aria-hidden
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z" />
+                            </svg>
+                            <span className="text-center text-sm font-medium text-foreground">
+                              Drop image here or click to browse
+                            </span>
+                            <span className="mt-0.5 text-xs text-muted-foreground">
+                              PNG, JPG, WebP up to 5MB
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-foreground">Active</span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={editActive}
+                        data-testid="input-admin-category-edit-active"
+                        onClick={() => setEditActive((s) => !s)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                          editActive ? "bg-primary" : "bg-muted"
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${
+                            editActive ? "translate-x-5" : "translate-x-0.5"
+                          }`}
+                        />
+                      </button>
+                      <span className="text-sm text-muted-foreground">{editActive ? "On" : "Off"}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-3 lg:border-l lg:border-border/60 lg:pl-6">
+                    <h3 className="text-lg font-semibold text-foreground">SEO Details</h3>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground" htmlFor="edit-category-meta-title">Meta Title</label>
+                      <input
+                        id="edit-category-meta-title"
+                        value={editMetaTitle}
+                        onChange={(e) => setEditMetaTitle(e.target.value)}
+                        className="mt-1 h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="Page title for search engines"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground" htmlFor="edit-category-meta-desc">Meta Description</label>
+                      <textarea
+                        id="edit-category-meta-desc"
+                        value={editMetaDescription}
+                        onChange={(e) => setEditMetaDescription(e.target.value)}
+                        className="mt-1 min-h-[100px] w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        placeholder="Short description for search results"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground" htmlFor="edit-category-meta-keywords">Meta Keywords</label>
+                      <KeywordTagsInput
+                        id="edit-category-meta-keywords"
+                        value={editMetaKeywords}
+                        onChange={setEditMetaKeywords}
+                        placeholder="Type and separate with space/comma"
+                      />
+                    </div>
+                  </div>
+                </div>
+                {editStatus.message ? (
+                  <div
+                    data-testid="status-admin-category-edit"
+                    className={`mt-4 rounded-xl px-4 py-3 text-sm ${
+                      editStatus.type === "success"
+                        ? "border border-green-200 bg-green-50 text-green-700"
+                        : "border border-red-200 bg-red-50 text-red-700"
+                    }`}
+                  >
+                    {editStatus.message}
+                  </div>
+                ) : null}
+                <div className="mt-5 flex items-center gap-3">
+                  <Button type="submit" disabled={isUpdating || editTitle.trim().length === 0}>
+                    {isUpdating ? "Saving…" : "Save changes"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setEditStatus({ type: "", message: "" });
+                      cancelEdit();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    data-testid="button-admin-category-delete"
+                    disabled={deletingId === editingId}
+                    className="border-red-200/80 text-red-600 hover:bg-red-50"
+                    onClick={() => onDelete(editingId)}
+                    aria-label={deletingId === editingId ? "Deleting…" : "Delete category"}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1.5" aria-hidden />
+                    Delete
+                  </Button>
+                </div>
+              </form>
+            </div>
+          ) : null}
+
+          {!isFormOpen && !editingId && !selectedId ? (
           <div className="mt-8">
             <div className="mb-4 flex items-baseline justify-between border-b border-border/60 pb-3">
               <h2 className="text-lg font-semibold tracking-tight text-foreground">
@@ -587,303 +955,35 @@ export default function AdminCategories() {
                     key={item._id}
                     type="button"
                     data-testid={`card-admin-category-${item._id}`}
-                    onClick={() => setSelectedId(item._id)}
-                    className={`group flex flex-col items-center gap-3 rounded-xl border-2 bg-card p-4 text-left shadow-sm transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                      selectedId === item._id
-                        ? "border-primary shadow-lg ring-2 ring-primary/20"
-                        : "border-border/60 hover:border-primary/40"
-                    }`}
+                    onClick={() => {
+                      setSelectedId(item._id);
+                      setIsFormOpen(false);
+                    }}
+                    className="group flex flex-col items-center gap-3 rounded-xl border-2 border-border/60 bg-card p-4 text-left shadow-sm transition-all hover:shadow-lg hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   >
-                    <div className="flex h-44 w-44 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted shadow-inner">
-                      <img
-                        src={toPublicUrl(item.imageUrl) || IMAGES.LOGO}
-                        alt=""
-                        className="h-full w-full object-contain p-2 transition-transform group-hover:scale-105"
-                        loading="lazy"
-                      />
-                    </div>
+                    <img
+                      src={toPublicUrl(item.imageUrl) || IMAGES.LOGO}
+                      alt=""
+                      className="h-44 w-44 shrink-0 rounded-xl object-contain transition-transform group-hover:scale-105"
+                      loading="lazy"
+                    />
                     <span className="w-full truncate text-center text-sm font-semibold text-foreground">
                       {item.title}
                     </span>
-                    {seoByCategoryId[item._id] ? (
+                    {(() => {
+                    const s = seoByCategoryId[item._id];
+                    if (!s || (!s.metaTitle && !s.metaDescription && !s.metaKeywords)) return null;
+                    return (
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
                         SEO
                       </span>
-                    ) : null}
+                    );
+                  })()}
                   </button>
                 ))}
               </div>
             ) : null}
           </div>
-          ) : null}
-
-          {/* Detail overlay */}
-          {selectedId ? (
-            <div
-              className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-4 py-8"
-              onClick={closeDetail}
-              role="dialog"
-              aria-modal="true"
-            >
-              <div
-                className="relative z-[60] w-full max-w-lg rounded-2xl border-2 border-blue-500 bg-card shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  type="button"
-                  onClick={closeDetail}
-                  className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-muted/80 text-muted-foreground transition hover:bg-muted"
-                  aria-label="Close"
-                >
-                  ×
-                </button>
-
-                {detailLoading ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    <p className="mt-3 text-sm">Loading…</p>
-                  </div>
-                ) : detailError ? (
-                  <div className="p-6">
-                    <p className="text-sm text-red-600">{detailError}</p>
-                    <Button variant="ghost" className="mt-4" onClick={closeDetail}>
-                      Close
-                    </Button>
-                  </div>
-                ) : editingId === selectedId ? (
-                  <form onSubmit={onUpdate} className="p-6 pt-12">
-                    <div className="grid gap-3">
-                      <div>
-                        <label className="text-xs font-medium text-muted-foreground" htmlFor="edit-category-title">
-                          Title
-                        </label>
-                        <input
-                          id="edit-category-title"
-                          data-testid="input-admin-category-edit-title"
-                          value={editTitle}
-                          onChange={(e) => setEditTitle(e.target.value)}
-                          className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-muted-foreground" htmlFor="edit-category-description">
-                          Description
-                        </label>
-                        <textarea
-                          id="edit-category-description"
-                          data-testid="input-admin-category-edit-description"
-                          value={editDescription}
-                          onChange={(e) => setEditDescription(e.target.value)}
-                          className="mt-2 min-h-[84px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                        />
-                      </div>
-                      <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
-                        <p className="mb-2 text-xs font-medium text-muted-foreground">SEO (optional)</p>
-                        <div className="space-y-2">
-                          <div>
-                            <label className="text-xs text-muted-foreground">Meta Title</label>
-                            <input
-                              value={editMetaTitle}
-                              onChange={(e) => setEditMetaTitle(e.target.value)}
-                              className="mt-1 h-9 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                              placeholder="Meta title"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-muted-foreground">Meta Description</label>
-                            <textarea
-                              value={editMetaDescription}
-                              onChange={(e) => setEditMetaDescription(e.target.value)}
-                              className="mt-1 min-h-[56px] w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                              placeholder="Meta description"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-muted-foreground">Meta Keywords</label>
-                            <KeywordTagsInput
-                              id="edit-category-meta-keywords"
-                              value={editMetaKeywords}
-                              onChange={setEditMetaKeywords}
-                              placeholder="Type and separate with space/comma"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-xs font-medium text-muted-foreground">Replace image (optional)</label>
-                          <input
-                            ref={editFileInputRef}
-                            type="file"
-                            accept="image/*"
-                            className="sr-only"
-                            onChange={(e) => setEditImageFile(e.target.files?.[0] ?? null)}
-                          />
-                          <div
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => editFileInputRef.current?.click()}
-                            onKeyDown={(e) => e.key === "Enter" && editFileInputRef.current?.click()}
-                            onDragOver={(e) => handleImageDragOver(e, true)}
-                            onDragLeave={(e) => handleImageDragLeave(e, true)}
-                            onDrop={(e) => handleImageDrop(e, setEditImageFile, true)}
-                            className={`mt-2 flex min-h-[100px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${
-                              editImageDropActive
-                                ? "border-primary bg-primary/5"
-                                : "border-border/70 bg-muted/30 hover:border-primary/50 hover:bg-muted/50"
-                            }`}
-                          >
-                            {editImagePreview || detailItem?.imageUrl ? (
-                              <div className="relative w-full p-2">
-                                <img
-                                  src={editImagePreview || toPublicUrl(detailItem?.imageUrl)}
-                                  alt="Preview"
-                                  className="mx-auto max-h-20 rounded-lg object-contain"
-                                />
-                                {editImageFile && (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setEditImageFile(null);
-                                      editFileInputRef.current && (editFileInputRef.current.value = "");
-                                    }}
-                                    className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-sm text-white transition hover:bg-black/80"
-                                    aria-label="Remove selected image"
-                                  >
-                                    ×
-                                  </button>
-                                )}
-                              </div>
-                            ) : (
-                              <>
-                                <svg className="mb-1 h-8 w-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z" />
-                                </svg>
-                                <span className="text-center text-xs font-medium text-foreground">Drop or click to replace</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm font-medium text-foreground">Active</span>
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={editActive}
-                            data-testid="input-admin-category-edit-active"
-                            onClick={() => setEditActive((s) => !s)}
-                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
-                              editActive ? "bg-primary" : "bg-muted"
-                            }`}
-                          >
-                            <span
-                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform ${
-                                editActive ? "translate-x-5" : "translate-x-0.5"
-                              }`}
-                            />
-                          </button>
-                          <span className="text-sm text-muted-foreground">{editActive ? "On" : "Off"}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {editStatus.message ? (
-                      <div
-                        data-testid="status-admin-category-edit"
-                        className={`mt-3 rounded-xl px-4 py-3 text-sm ${
-                          editStatus.type === "success"
-                            ? "border border-green-200 bg-green-50 text-green-700"
-                            : "border border-red-200 bg-red-50 text-red-700"
-                        }`}
-                      >
-                        {editStatus.message}
-                      </div>
-                    ) : null}
-                    <div className="mt-4 flex gap-3">
-                      <Button type="submit" disabled={isUpdating || editTitle.trim().length === 0}>
-                        {isUpdating ? "Saving…" : "Save changes"}
-                      </Button>
-                      <Button variant="ghost" onClick={cancelEdit}>Cancel</Button>
-                    </div>
-                  </form>
-                ) : detailItem ? (
-                  <div className="p-6 pt-12">
-                    <div className="flex flex-col items-center">
-                      <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl bg-muted">
-                        <img
-                          src={toPublicUrl(detailItem.imageUrl) || IMAGES.LOGO}
-                          alt=""
-                          className="h-full w-full object-contain p-2"
-                        />
-                      </div>
-                      <h3 className="mt-4 text-xl font-semibold text-foreground">{detailItem.title}</h3>
-                      <span
-                        className={`mt-2 rounded-full px-3 py-0.5 text-xs font-medium ${
-                          detailItem.active ? "bg-emerald-100 text-emerald-700" : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {detailItem.active ? "Active" : "Inactive"}
-                      </span>
-                    </div>
-                    <div className="mt-6">
-                      <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Description</p>
-                      <p className="mt-2 text-sm text-foreground">
-                        {detailItem.description || "No description."}
-                      </p>
-                    </div>
-                    {(editMetaTitle || editMetaDescription || editMetaKeywords) ? (
-                      <div className="mt-6 rounded-xl border border-border/60 bg-muted/20 p-4">
-                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">SEO</p>
-                        <div className="mt-2 space-y-2 text-sm">
-                          {editMetaTitle ? (
-                            <div>
-                              <span className="text-muted-foreground">Meta Title: </span>
-                              <span className="text-foreground">{editMetaTitle}</span>
-                            </div>
-                          ) : null}
-                          {editMetaDescription ? (
-                            <div>
-                              <span className="text-muted-foreground">Meta Description: </span>
-                              <span className="text-foreground">{editMetaDescription}</span>
-                            </div>
-                          ) : null}
-                          {editMetaKeywords ? (
-                            <div>
-                              <span className="text-muted-foreground">Meta Keywords: </span>
-                              <span className="text-foreground">{editMetaKeywords}</span>
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    ) : null}
-                    <div className="mt-6 flex gap-2 border-t border-border/60 pt-4">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        data-testid="button-admin-category-edit"
-                        onClick={() => startEdit()}
-                        className="h-10 w-10 rounded-full p-0"
-                        aria-label="Edit category"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        data-testid="button-admin-category-delete"
-                        disabled={deletingId === selectedId}
-                        className="h-10 w-10 rounded-full p-0 border-red-200/80 text-red-600 hover:bg-red-50"
-                        onClick={() => onDelete(selectedId)}
-                        aria-label={deletingId === selectedId ? "Deleting…" : "Delete category"}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
           ) : null}
     </AdminShell>
   );
