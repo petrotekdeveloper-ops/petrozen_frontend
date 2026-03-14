@@ -4,6 +4,7 @@ import { Pencil, Trash2, X } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import AdminShell from "@/components/admin/AdminShell";
 import KeywordTagsInput from "@/components/admin/KeywordTagsInput";
+import { IMAGES } from "@/lib/images";
 
 export default function AdminProducts() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -30,6 +31,7 @@ export default function AdminProducts() {
   const [catalogPreview, setCatalogPreview] = useState(null);
   const [featuresText, setFeaturesText] = useState("");
   const [specificationsText, setSpecificationsText] = useState("");
+  const [gradesText, setGradesText] = useState("");
   const [active, setActive] = useState(true);
   const [status, setStatus] = useState({ type: "", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,6 +51,7 @@ export default function AdminProducts() {
   const [editCatalogPreview, setEditCatalogPreview] = useState(null);
   const [editFeaturesText, setEditFeaturesText] = useState("");
   const [editSpecificationsText, setEditSpecificationsText] = useState("");
+  const [editGradesText, setEditGradesText] = useState("");
   const [editActive, setEditActive] = useState(true);
   const [editStatus, setEditStatus] = useState({ type: "", message: "" });
   const [isUpdating, setIsUpdating] = useState(false);
@@ -220,6 +223,7 @@ export default function AdminProducts() {
     setCatalogPreview(null);
     setFeaturesText("");
     setSpecificationsText("");
+    setGradesText("");
     setImagePreview(null);
     setActive(true);
   };
@@ -328,6 +332,7 @@ export default function AdminProducts() {
     setEditDescription(src?.description || "");
     setEditFeaturesText(listToTextarea(src?.features));
     setEditSpecificationsText(listToTextarea(src?.specifications));
+    setEditGradesText(listToTextarea(src?.grades));
     setEditImageFile(null);
     setEditCatalogFile(null);
     setEditCatalogPreview(null);
@@ -346,6 +351,7 @@ export default function AdminProducts() {
     setEditDescription("");
     setEditFeaturesText("");
     setEditSpecificationsText("");
+    setEditGradesText("");
     setEditMetaTitle("");
     setEditMetaDescription("");
     setEditMetaKeywords("");
@@ -420,6 +426,7 @@ export default function AdminProducts() {
       if (description.trim()) fd.append("description", description.trim());
       fd.append("features", JSON.stringify(parseTextList(featuresText)));
       fd.append("specifications", JSON.stringify(parseTextList(specificationsText)));
+      fd.append("grades", JSON.stringify(parseTextList(gradesText)));
       fd.append("active", String(active));
       if (imageFile) fd.append("image", imageFile);
       if (catalogFile) fd.append("catelog", catalogFile);
@@ -466,6 +473,7 @@ export default function AdminProducts() {
       fd.append("description", editDescription.trim());
       fd.append("features", JSON.stringify(parseTextList(editFeaturesText)));
       fd.append("specifications", JSON.stringify(parseTextList(editSpecificationsText)));
+      fd.append("grades", JSON.stringify(parseTextList(editGradesText)));
       fd.append("active", String(editActive));
       if (editImageFile) fd.append("image", editImageFile);
       if (editCatalogFile) fd.append("catelog", editCatalogFile);
@@ -691,6 +699,20 @@ export default function AdminProducts() {
                         placeholder={"One per line\nor comma separated"}
                       />
                     </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-foreground" htmlFor="product-grades">
+                        Grades (optional)
+                      </label>
+                      <textarea
+                        id="product-grades"
+                        data-testid="input-admin-product-grades"
+                        value={gradesText}
+                        onChange={(e) => setGradesText(e.target.value)}
+                        className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        placeholder={"One per line\nor comma separated"}
+                      />
+                    </div>
                   </div>
                 </section>
 
@@ -893,27 +915,21 @@ export default function AdminProducts() {
             ) : null}
 
             {!isLoading && !loadError && items.length > 0 ? (
-              <div className="mt-4 grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                 {items.map((item) => (
                   <button
                     key={item._id}
                     type="button"
                     data-testid={`card-admin-product-${item._id}`}
                     onClick={() => setSelectedId(item._id)}
-                    className={`group flex flex-col items-center gap-4 rounded-2xl border-2 bg-card p-6 text-left shadow-sm transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
+                    className={`group flex flex-col items-center gap-3 rounded-xl border-2 bg-card p-4 text-left shadow-sm transition-all hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${
                       selectedId === item._id ? "border-primary shadow-lg ring-2 ring-primary/20" : "border-border/60 hover:border-primary/40"
                     }`}
                   >
-                    <div className="flex h-40 w-40 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-muted shadow-inner">
-                      {item.imageUrl ? (
-                        <img src={toPublicUrl(item.imageUrl)} alt="" className="h-full w-full object-contain p-2 transition-transform group-hover:scale-105" loading="lazy" />
-                      ) : (
-                        <svg className="h-20 w-20 text-muted-foreground/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
-                        </svg>
-                      )}
+                    <div className="flex h-44 w-44 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted shadow-inner">
+                      <img src={toPublicUrl(item.imageUrl) || IMAGES.LOGO} alt="" className="h-full w-full object-contain p-2 transition-transform group-hover:scale-105" loading="lazy" />
                     </div>
-                    <span className="w-full truncate text-center text-base font-semibold text-foreground">{item.title}</span>
+                    <span className="w-full truncate text-center text-sm font-semibold text-foreground">{item.title}</span>
                     <div className="flex flex-wrap items-center justify-center gap-1">
                       {item.brand ? (
                         <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
@@ -1053,6 +1069,17 @@ export default function AdminProducts() {
                           />
                         </div>
 
+                        <div>
+                          <label className="text-xs font-medium text-muted-foreground">Grades</label>
+                          <textarea
+                            data-testid="input-admin-product-edit-grades"
+                            value={editGradesText}
+                            onChange={(e) => setEditGradesText(e.target.value)}
+                            className="mt-2 min-h-[84px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                            placeholder={"One per line\nor comma separated"}
+                          />
+                        </div>
+
                         <div className="rounded-xl border border-border/60 bg-muted/20 p-3">
                           <p className="mb-2 text-xs font-medium text-muted-foreground">SEO (optional)</p>
                           <div className="space-y-2">
@@ -1181,13 +1208,7 @@ export default function AdminProducts() {
                   <div className="p-6 pt-12">
                     <div className="flex flex-col items-center">
                       <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl bg-muted">
-                        {detailItem.imageUrl ? (
-                          <img src={toPublicUrl(detailItem.imageUrl)} alt="" className="h-full w-full object-contain p-2" />
-                        ) : (
-                          <svg className="h-14 w-14 text-muted-foreground/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" />
-                          </svg>
-                        )}
+                        <img src={toPublicUrl(detailItem.imageUrl) || IMAGES.LOGO} alt="" className="h-full w-full object-contain p-2" />
                       </div>
                       <h3 className="mt-4 text-xl font-semibold text-foreground">{detailItem.title}</h3>
                       <p className="mt-1 text-sm text-muted-foreground">
@@ -1235,6 +1256,16 @@ export default function AdminProducts() {
                         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-foreground">
                           {detailItem.specifications.map((entry, idx) => (
                             <li key={`specification-${idx}-${entry}`}>{entry}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                    {Array.isArray(detailItem.grades) && detailItem.grades.length > 0 ? (
+                      <div className="mt-6">
+                        <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Grades</p>
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-foreground">
+                          {detailItem.grades.map((entry, idx) => (
+                            <li key={`grade-${idx}-${entry}`}>{entry}</li>
                           ))}
                         </ul>
                       </div>

@@ -125,18 +125,19 @@ export default function Product() {
     return String(selectedProduct.description);
   }, [selectedProduct]);
   const pageTitle = isDetailView
-    ? selectedProduct?.title || "Product details"
+    ? ""
     : "Products";
   const pageSubtitle = isDetailView
-    ? pathEyebrow
+    ? ""
     : pathEyebrow;
+  const pageHeroImage = isDetailView ? "" : heroImage;
 
   return (
     <PageLayout
       testId={isDetailView ? "page-product-detail" : "page-products-list"}
       title={pageTitle}
       subtitle={pageSubtitle}
-      heroImage={isDetailView && selectedProduct?.imageUrl ? toPublicUrl(selectedProduct.imageUrl) : heroImage}
+      heroImage={pageHeroImage}
       heroTitleFont="sans"
     >
       <SeoHead
@@ -150,7 +151,7 @@ export default function Product() {
         fallbackKeywords={`${isDetailView ? (selectedProduct?.title || "product") : (subcategory?.title || "products")}, petrozen, oil and gas equipment`}
         ogImage={isDetailView && selectedProduct?.imageUrl ? toPublicUrl(selectedProduct.imageUrl) : heroImage}
       />
-      <section data-testid="section-breadcrumb" className="py-6 border-b border-border/50">
+      <section data-testid="section-breadcrumb" className="py-6 border-b border-border/50 bg-secondary">
         <div className="container-pad">
           {isDetailView ? (
             <Link href={`/products/${categoryId}/${subcategoryId}`}>
@@ -159,7 +160,7 @@ export default function Product() {
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
-                Back to products
+                Back to product list
               </a>
             </Link>
           ) : (
@@ -196,68 +197,107 @@ export default function Product() {
           </div>
         </section>
       ) : isDetailView ? (
-        <section data-testid="section-product-detail" className="pt-8 sm:pt-10 pb-16 sm:pb-20 bg-secondary">
-          {!selectedProduct ? (
+        !selectedProduct ? (
+          <section className="py-16 sm:py-20">
             <div className="container-pad">
               <p className="text-base text-destructive">Product not found.</p>
             </div>
-          ) : (
-            <div className="container-pad">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-                <div className="lg:col-span-6">
-                  <div className="rounded-2xl overflow-hidden shadow-lg bg-white">
-                    <img
-                      src={toPublicUrl(selectedProduct.imageUrl) || IMAGES.INDUSTRY_REFINERY}
-                      alt={selectedProduct.title}
-                      className="w-full h-[320px] sm:h-[420px] object-contain bg-white"
+          </section>
+        ) : (
+          <>
+            <section data-testid="section-product-overview" className="py-16 sm:py-20 bg-background">
+              <div className="container-pad">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+                  <div className="lg:col-span-6">
+                    <div className="rounded-2xl overflow-hidden shadow-lg bg-white flex items-center justify-center">
+                      <img
+                        src={toPublicUrl(selectedProduct.imageUrl) || IMAGES.LOGO}
+                        alt={selectedProduct.title}
+                        className={selectedProduct.imageUrl ? "w-full h-auto max-h-[560px] object-contain" : "max-w-[55%] max-h-[65%] object-contain"}
+                      />
+                    </div>
+                  </div>
+                  <div className="lg:col-span-6">
+                    <SectionTitle
+                      testId="title-product-detail"
+                      eyebrow={pathEyebrow}
+                      title={selectedProduct.title}
+                      description={selectedProduct.description || "Detailed product information will be updated shortly."}
+                      align="left"
+                      titleFont="sans"
+                      className="max-w-none"
                     />
-                  </div>
-                </div>
-                <div className="lg:col-span-6">
-                  <SectionTitle
-                    testId="title-product-detail"
-                    eyebrow={pathEyebrow}
-                    title={selectedProduct.title}
-                    description={selectedProduct.description || "Detailed product information will be updated shortly."}
-                    align="left"
-                    titleFont="sans"
-                    className="max-w-none"
-                  />
-
-                  <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="rounded-xl border border-border/70 bg-card px-4 py-3">
-                      <div className="text-xs uppercase tracking-wide text-muted-foreground">Category</div>
-                      <div className="mt-1 text-sm font-medium">{category?.title || "—"}</div>
+                    <div className="mt-8">
+                      <Button
+                        as="link"
+                        href="/contact"
+                        testId="button-enquiry-product-detail"
+                        className="rounded-xl px-5 py-3 text-sm font-medium bg-[#064CCA] text-white hover:bg-[#053a9e]"
+                      >
+                        Enquiry now
+                      </Button>
                     </div>
-                    <div className="rounded-xl border border-border/70 bg-card px-4 py-3">
-                      <div className="text-xs uppercase tracking-wide text-muted-foreground">Subcategory</div>
-                      <div className="mt-1 text-sm font-medium">{subcategory?.title || "—"}</div>
-                    </div>
-                    <div className="rounded-xl border border-border/70 bg-card px-4 py-3">
-                      <div className="text-xs uppercase tracking-wide text-muted-foreground">Availability</div>
-                      <div className="mt-1 text-sm font-medium">{selectedProduct.active ? "Active" : "Inactive"}</div>
-                    </div>
-                    <div className="rounded-xl border border-border/70 bg-card px-4 py-3">
-                      <div className="text-xs uppercase tracking-wide text-muted-foreground">Product ID</div>
-                      <div className="mt-1 text-sm font-medium break-all">{selectedProduct._id}</div>
-                    </div>
-                  </div>
-
-                  <div className="mt-8">
-                    <Button
-                      as="link"
-                      href="/contact"
-                      testId="button-enquiry-product-detail"
-                      className="rounded-xl px-5 py-3 text-sm font-medium bg-[#064CCA] text-white hover:bg-[#053a9e]"
-                    >
-                      Enquiry now
-                    </Button>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-        </section>
+            </section>
+
+            {[
+              Array.isArray(selectedProduct.features) && selectedProduct.features.length > 0 && { key: "features", title: "Features", items: selectedProduct.features },
+              Array.isArray(selectedProduct.specifications) && selectedProduct.specifications.length > 0 && { key: "specifications", title: "Specifications", items: selectedProduct.specifications },
+            ]
+              .filter(Boolean)
+              .map((section, idx) => (
+                <section
+                  key={section.key}
+                  data-testid={`section-product-${section.key}`}
+                  className={`py-8 sm:py-10 ${idx % 2 === 0 ? "bg-secondary" : "bg-background"}`}
+                >
+                  <div className="container-pad">
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">{section.title}</h3>
+                    <ul className="list-disc space-y-2 pl-5 text-base sm:text-lg text-foreground">
+                      {section.items.map((entry, i) => (
+                        <li key={`${section.key}-${i}`}>{entry}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+              ))}
+
+            {Array.isArray(selectedProduct.grades) && selectedProduct.grades.length > 0 ? (
+              <section
+                data-testid="section-product-grades"
+                className={`py-8 sm:py-10 ${([!!(selectedProduct.features?.length), !!(selectedProduct.specifications?.length)].filter(Boolean).length % 2 === 1 ? "bg-background" : "bg-secondary")}`}
+              >
+                <div>
+                  <div className="container-pad">
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">Grades</h3>
+                  </div>
+                  <div className="mx-auto w-full max-w-[90rem] pl-6 pr-2 sm:pl-8 sm:pr-4 lg:pl-10 lg:pr-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+                    {selectedProduct.grades.map((grade, i) => (
+                      <div
+                        key={`grade-${i}`}
+                        className="rounded-xl border border-border/70 bg-card p-6 sm:p-8 flex flex-col gap-4 shadow-sm min-h-[180px]"
+                      >
+                        <p className="text-lg sm:text-xl font-medium text-foreground">{grade}</p>
+                        <div className="mt-auto flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                          <span className="text-xs text-muted-foreground">Need to make an enquiry with this grade</span>
+                          <Button
+                            as="link"
+                            href="/contact"
+                            className="rounded-lg text-sm font-medium bg-[#064CCA] text-white hover:bg-[#053a9e] w-fit"
+                          >
+                            Enquiry
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            ) : null}
+          </>
+        )
       ) : (
         <section data-testid="section-products" className="pt-8 sm:pt-10 pb-16 sm:pb-20 bg-secondary">
           <div className="container-pad reveal" data-reveal="fade">
@@ -294,9 +334,9 @@ export default function Product() {
                         className="group relative w-full rounded-2xl overflow-hidden shadow-sm shadow-black/5 h-[200px] sm:h-[220px] lg:h-[240px] transition-all duration-300 hover:shadow-xl hover:shadow-black/10 hover:-translate-y-1"
                       >
                         <img
-                          src={toPublicUrl(p.imageUrl) || IMAGES.INDUSTRY_REFINERY}
+                          src={toPublicUrl(p.imageUrl) || IMAGES.LOGO}
                           alt={p.title}
-                          className="absolute inset-0 z-0 h-full w-full object-cover transition-all duration-300 group-hover:scale-105 group-hover:blur-sm"
+                          className={`absolute z-0 transition-all duration-300 group-hover:scale-105 group-hover:blur-sm ${p.imageUrl ? "inset-0 h-full w-full object-cover" : "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[60%] max-h-[60%] object-contain"}`}
                         />
                         <div
                           className="absolute inset-0 z-10 bg-gradient-to-t from-black/85 via-black/30 to-transparent"
