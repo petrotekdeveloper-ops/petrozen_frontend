@@ -8,6 +8,8 @@ import { HERO_URLS } from "@/lib/images";
 import { IMAGES } from "@/lib/images";
 import { ChevronLeft } from "lucide-react";
 import { useSeo } from "@/hooks/useSeo";
+import { matchesSlugOrId, toSlug } from "@/lib/slug";
+import { sortByCreatedAtAsc } from "@/lib/utils";
 
 const HERO = HERO_URLS.OIL_GAS || IMAGES.HERO_OIL_GAS;
 
@@ -20,9 +22,9 @@ function toPublicUrl(maybePath) {
 }
 
 export default function Subcategory() {
-  const { categoryId } = useParams();
-  const { seo } = useSeo("category", categoryId);
+  const { categorySlug } = useParams();
   const [category, setCategory] = useState(null);
+  const { seo } = useSeo("category", category?._id);
   const [subcategories, setSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -47,27 +49,40 @@ export default function Subcategory() {
   }, [subcategories]);
 
   useEffect(() => {
-    if (!categoryId) return;
+    if (!categorySlug) return;
     let mounted = true;
     setLoading(true);
     setError("");
-    Promise.all([
-      apiClient.get(`/api/categories/${categoryId}`),
-      apiClient.get("/api/subcategories", { params: { categoryId, active: true } }),
-    ]).then(([catRes, subRes]) => {
-      if (!mounted) return;
-      setCategory(catRes?.data?.item ?? null);
-      setSubcategories(subRes?.data?.items ?? []);
-    }).catch(() => {
-      if (!mounted) return;
-      setError("Failed to load category.");
-      setCategory(null);
-      setSubcategories([]);
-    }).finally(() => { if (mounted) setLoading(false); });
-    return () => { mounted = false; };
-  }, [categoryId]);
+    apiClient.get("/api/categories", { params: { active: true } })
+      .then(async (catRes) => {
+        if (!mounted) return;
+        const categories = catRes?.data?.items ?? [];
+        const currentCategory = categories.find((item) => matchesSlugOrId(categorySlug, item)) || null;
+        if (!currentCategory) {
+          setError("Category not found.");
+          setCategory(null);
+          setSubcategories([]);
+          return;
+        }
 
-  if (!categoryId) return null;
+        setCategory(currentCategory);
+        const subRes = await apiClient.get("/api/subcategories", {
+          params: { categoryId: currentCategory._id, active: true },
+        });
+        if (!mounted) return;
+        setSubcategories(sortByCreatedAtAsc(subRes?.data?.items ?? []));
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setError("Failed to load category.");
+        setCategory(null);
+        setSubcategories([]);
+      })
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
+  }, [categorySlug]);
+
+  if (!categorySlug) return null;
 
   return (
     <PageLayout testId="page-product-category" title="Subcategories" heroImage={category?.imageUrl ? toPublicUrl(category.imageUrl) : HERO} heroTitleFont="sans">
@@ -108,7 +123,7 @@ export default function Subcategory() {
               <div className="mx-auto mt-10 w-full max-w-[90rem] px-3 sm:px-4 lg:px-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-6 lg:gap-8 items-stretch">
                   {subcategories.map((sub, idx) => (
-                    <Link key={sub._id} href={`/products/${categoryId}/${sub._id}`}>
+                    <Link key={sub._id} href={`/products/${toSlug(category.title)}/${toSlug(sub.title)}`}>
                       <a className="min-w-0 w-full block reveal" data-reveal={idx % 2 === 0 ? "left" : "right"} style={{ transitionDelay: `${idx * 120}ms` }} data-testid={`card-subcategory-${sub._id}`}>
                         <div className="group relative w-full rounded-2xl overflow-hidden shadow-sm shadow-black/5 h-[200px] sm:h-[220px] lg:h-[240px] transition-all duration-300 hover:shadow-xl hover:shadow-black/10 hover:-translate-y-1">
                           <img src={toPublicUrl(sub.imageUrl) || IMAGES.LOGO} alt="" className={`absolute z-0 transition-all duration-300 group-hover:scale-105 group-hover:blur-sm ${sub.imageUrl ? "inset-0 h-full w-full object-cover" : "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[60%] max-h-[60%] object-contain"}`} />

@@ -9,6 +9,8 @@ import { HERO_URLS } from "@/lib/images";
 import { IMAGES } from "@/lib/images";
 import { ChevronLeft } from "lucide-react";
 import { useSeo } from "@/hooks/useSeo";
+import { matchesSlugOrId, toSlug } from "@/lib/slug";
+import { sortByCreatedAtAsc } from "@/lib/utils";
 
 const HERO = HERO_URLS.OIL_GAS || IMAGES.HERO_OIL_GAS;
 
@@ -21,15 +23,16 @@ function toPublicUrl(maybePath) {
 }
 
 export default function Product() {
-  const { categoryId, subcategoryId, productId } = useParams();
-  const isDetailView = Boolean(productId);
-  const { seo } = useSeo(isDetailView ? "product" : "subcategory", isDetailView ? productId : subcategoryId);
+  const { categorySlug, subcategorySlug, productSlug } = useParams();
+  const isDetailView = Boolean(productSlug);
   const [subcategory, setSubcategory] = useState(null);
   const [category, setCategory] = useState(null);
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const seoPageKey = isDetailView ? selectedProduct?._id : subcategory?._id;
+  const { seo } = useSeo(isDetailView ? "product" : "subcategory", seoPageKey);
 
   useEffect(() => {
     const elements = Array.from(document.querySelectorAll("[data-reveal]"));
@@ -60,39 +63,63 @@ export default function Product() {
   }, [products, selectedProduct]);
 
   useEffect(() => {
-    if (!subcategoryId || !categoryId) return;
+    if (!subcategorySlug || !categorySlug) return;
     let mounted = true;
     setLoading(true);
     setError("");
+    setSubcategory(null);
+    setCategory(null);
+    setProducts([]);
+    setSelectedProduct(null);
 
-    const detailPromise = isDetailView
-      ? apiClient.get(`/api/products/${productId}`)
-      : Promise.resolve({ data: { item: null } });
-    const listPromise = isDetailView
-      ? Promise.resolve({ data: { items: [] } })
-      : apiClient.get(`/api/products`, {
-          params: { subCategoryId: subcategoryId, active: true },
-        });
-
-    Promise.all([
-      apiClient.get(`/api/subcategories/${subcategoryId}`),
-      apiClient.get(`/api/categories/${categoryId}`),
-      listPromise,
-      detailPromise,
-    ])
-      .then(([subRes, catRes, prodRes, detailRes]) => {
+    apiClient.get("/api/categories", { params: { active: true } })
+      .then(async (catRes) => {
         if (!mounted) return;
-        const currentSub = subRes?.data?.item ?? null;
-        const currentDetail = detailRes?.data?.item ?? null;
-
-        setSubcategory(currentSub);
-        setCategory(catRes?.data?.item ?? null);
-        setProducts(prodRes?.data?.items ?? []);
-        setSelectedProduct(currentDetail);
-
-        if (isDetailView && currentDetail && String(currentDetail?.subCategory?._id || currentDetail?.subCategory || "") !== String(subcategoryId)) {
-          setError("Product does not belong to this subcategory.");
+        const categories = catRes?.data?.items ?? [];
+        const currentCategory = categories.find((item) => matchesSlugOrId(categorySlug, item)) || null;
+        if (!currentCategory) {
+          setError("Category not found.");
+          return;
         }
+
+        const subRes = await apiClient.get("/api/subcategories", {
+          params: { categoryId: currentCategory._id, active: true },
+        });
+        if (!mounted) return;
+
+        const subItems = subRes?.data?.items ?? [];
+        const currentSub = subItems.find((item) => matchesSlugOrId(subcategorySlug, item)) || null;
+        if (!currentSub) {
+          setError("Subcategory not found.");
+          setCategory(currentCategory);
+          return;
+        }
+
+        const productListRes = await apiClient.get("/api/products", {
+          params: { subCategoryId: currentSub._id, active: true },
+        });
+        if (!mounted) return;
+
+        const productItems = productListRes?.data?.items ?? [];
+        let currentDetail = null;
+        if (isDetailView) {
+          const matchedProduct = productItems.find((item) => matchesSlugOrId(productSlug, item)) || null;
+          if (!matchedProduct) {
+            setError("Product not found.");
+            setCategory(currentCategory);
+            setSubcategory(currentSub);
+            return;
+          }
+
+          const detailRes = await apiClient.get(`/api/products/${matchedProduct._id}`);
+          if (!mounted) return;
+          currentDetail = detailRes?.data?.item ?? null;
+        }
+
+        setCategory(currentCategory);
+        setSubcategory(currentSub);
+        setProducts(sortByCreatedAtAsc(productItems));
+        setSelectedProduct(currentDetail);
       })
       .catch(() => {
         if (!mounted) return;
@@ -107,9 +134,9 @@ export default function Product() {
       });
 
     return () => { mounted = false; };
-  }, [categoryId, subcategoryId, productId, isDetailView]);
+  }, [categorySlug, subcategorySlug, productSlug, isDetailView]);
 
-  if (!categoryId || !subcategoryId) return null;
+  if (!categorySlug || !subcategorySlug) return null;
 
   const heroImage = subcategory?.imageUrl
     ? toPublicUrl(subcategory.imageUrl)
@@ -120,6 +147,8 @@ export default function Product() {
   const pathEyebrow = category && subcategory
     ? `${category.title} / ${subcategory.title}`
     : undefined;
+  const categoryPath = category ? toSlug(category.title) : categorySlug;
+  const subcategoryPath = subcategory ? toSlug(subcategory.title) : subcategorySlug;
   const productDescription = useMemo(() => {
     if (!selectedProduct?.description) return "";
     return String(selectedProduct.description);
@@ -154,7 +183,7 @@ export default function Product() {
       <section data-testid="section-breadcrumb" className="py-6 border-b border-border/50 bg-secondary">
         <div className="container-pad">
           {isDetailView ? (
-            <Link href={`/products/${categoryId}/${subcategoryId}`}>
+            <Link href={`/products/${categoryPath}/${subcategoryPath}`}>
               <a
                 data-testid="link-back-to-products"
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
@@ -164,7 +193,7 @@ export default function Product() {
               </a>
             </Link>
           ) : (
-            <Link href={`/products/${categoryId}`}>
+            <Link href={`/products/${categoryPath}`}>
               <a
                 data-testid="link-back-to-subcategories"
                 className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
@@ -189,7 +218,7 @@ export default function Product() {
             <p className="text-base text-destructive">
               {error || "Subcategory not found."}
             </p>
-            <Link href={`/products/${categoryId}`}>
+            <Link href={`/products/${categoryPath}`}>
               <a className="mt-4 inline-block text-sm text-primary hover:underline">
                 Back to subcategories
               </a>
@@ -323,7 +352,7 @@ export default function Product() {
             <div className="mx-auto mt-10 w-full max-w-[90rem] px-3 sm:px-4 lg:px-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-6 lg:gap-8 items-stretch">
                 {products.map((p, idx) => (
-                  <Link key={p._id} href={`/products/${categoryId}/${subcategoryId}/${p._id}`}>
+                  <Link key={p._id} href={`/products/${toSlug(category.title)}/${toSlug(subcategory.title)}/${toSlug(p.title)}`}>
                     <a
                       className="min-w-0 w-full reveal block"
                       data-reveal={idx % 2 === 0 ? "left" : "right"}

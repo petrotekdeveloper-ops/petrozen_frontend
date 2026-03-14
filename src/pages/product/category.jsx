@@ -7,6 +7,8 @@ import { apiClient } from "@/lib/apiClient";
 import { HERO_URLS } from "@/lib/images";
 import { IMAGES } from "@/lib/images";
 import { useSeo } from "@/hooks/useSeo";
+import { toSlug } from "@/lib/slug";
+import { sortByCreatedAtAsc } from "@/lib/utils";
 
 const HERO = HERO_URLS.OIL_GAS || IMAGES.HERO_OIL_GAS;
 
@@ -55,7 +57,7 @@ export default function Category() {
     apiClient.get("/api/categories", { params: { active: true } })
       .then((res) => {
         if (!mounted) return;
-        setCategories(res?.data?.items ?? []);
+        setCategories(sortByCreatedAtAsc(res?.data?.items ?? []));
       })
       .catch(() => {
         if (!mounted) return;
@@ -89,7 +91,7 @@ export default function Category() {
           <div className="mx-auto mt-10 w-full max-w-[90rem] px-3 sm:px-4 lg:px-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-6 lg:gap-8 items-stretch">
               {categories.map((cat, idx) => (
-                <Link key={cat._id} href={`/products/${cat._id}`}>
+                <Link key={cat._id} href={`/products/${toSlug(cat.title)}`}>
                   <a className="min-w-0 w-full block reveal" data-reveal={idx % 2 === 0 ? "left" : "right"} style={{ transitionDelay: `${idx * 120}ms` }} data-testid={`card-category-${cat._id}`}>
                     <div className="group relative w-full rounded-2xl overflow-hidden shadow-sm shadow-black/5 h-[200px] sm:h-[220px] lg:h-[240px] transition-all duration-300 hover:shadow-xl hover:shadow-black/10 hover:-translate-y-1">
                       <img src={toPublicUrl(cat.imageUrl) || IMAGES.LOGO} alt="" className={`absolute z-0 transition-all duration-300 group-hover:scale-105 group-hover:blur-sm ${cat.imageUrl ? "inset-0 h-full w-full object-cover" : "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[60%] max-h-[60%] object-contain"}`} />
