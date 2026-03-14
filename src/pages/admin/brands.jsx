@@ -90,6 +90,10 @@ export default function AdminBrands() {
     return name.trim().length > 0 && imageFile && !isSubmitting;
   }, [name, imageFile, isSubmitting]);
 
+  const sortedItems = useMemo(() => {
+    return [...items].sort((a, b) => (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" }));
+  }, [items]);
+
   const resetForm = () => {
     setName("");
     setImageFile(null);
@@ -404,7 +408,7 @@ export default function AdminBrands() {
 
         {!isLoading && !loadError && items.length > 0 ? (
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {items.map((item) => (
+            {sortedItems.map((item) => (
               <button
                 key={item._id}
                 type="button"
