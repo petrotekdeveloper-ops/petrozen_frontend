@@ -6,6 +6,12 @@
   NODE_VERSION = "18"
 
 [[redirects]]
+  from = "/sitemap.xml"
+  to = "https://petrozen-ylex8.ondigitalocean.app/sitemap.xml"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
