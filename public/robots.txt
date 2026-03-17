@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Block admin panel (and all nested routes)
+Disallow: /admin
+
+# Block authentication routes
+Disallow: /admin/login
+
+# Block backend APIs (including admin APIs)
+Disallow: /api
+
+Sitemap: https://petrozen.ae/sitemap.xml
