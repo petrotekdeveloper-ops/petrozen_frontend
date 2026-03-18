@@ -842,7 +842,7 @@ export default function AdminProducts() {
                         id="product-meta-keywords"
                         value={metaKeywords}
                         onChange={setMetaKeywords}
-                        placeholder="Type and separate with space/comma"
+                        placeholder="Type keyword or sentence and press Enter"
                       />
                     </div>
                   </div>
@@ -1074,7 +1074,7 @@ export default function AdminProducts() {
                     <div className="mt-3 space-y-3">
                       <div><label className="text-xs font-medium text-muted-foreground">Meta Title</label><input value={editMetaTitle} onChange={(e) => setEditMetaTitle(e.target.value)} className="mt-1 h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Page title for search engines" /></div>
                       <div><label className="text-xs font-medium text-muted-foreground">Meta Description</label><textarea value={editMetaDescription} onChange={(e) => setEditMetaDescription(e.target.value)} className="mt-1 min-h-[100px] w-full rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="Short description for search results" /></div>
-                      <div><label className="text-xs font-medium text-muted-foreground">Meta Keywords</label><KeywordTagsInput id="edit-product-meta-keywords" value={editMetaKeywords} onChange={setEditMetaKeywords} placeholder="Type and separate with space/comma" /></div>
+                      <div><label className="text-xs font-medium text-muted-foreground">Meta Keywords</label><KeywordTagsInput id="edit-product-meta-keywords" value={editMetaKeywords} onChange={setEditMetaKeywords} placeholder="Type keyword or sentence and press Enter" /></div>
                     </div>
                   </section>
                 </div>
