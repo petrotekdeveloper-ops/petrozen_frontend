@@ -10,6 +10,44 @@ function clamp(input, maxLen) {
   return `${value.slice(0, maxLen - 1).trim()}…`;
 }
 
+function normalizeBaseUrl(input) {
+  const raw = String(input || "").trim().replace(/\/+$/, "");
+  if (!raw) return "";
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return "";
+  }
+}
+
+function cleanCanonical({ override, siteBase, currentHref }) {
+  const raw = String(override || "").trim();
+  const base = normalizeBaseUrl(siteBase) || (currentHref ? new URL(currentHref).origin : "");
+
+  if (!raw) {
+    if (!currentHref) return "";
+    const u = new URL(currentHref);
+    u.hash = "";
+    u.search = "";
+    if (base) u.host = new URL(base).host, u.protocol = new URL(base).protocol;
+    return u.toString();
+  }
+
+  try {
+    const u = new URL(raw, base || undefined);
+    u.hash = "";
+    u.search = "";
+    if (base) {
+      const b = new URL(base);
+      u.protocol = b.protocol;
+      u.host = b.host;
+    }
+    return u.toString();
+  } catch {
+    return "";
+  }
+}
+
 export default function SeoHead({
   seo,
   fallbackTitle,
@@ -34,11 +72,17 @@ export default function SeoHead({
     160
   );
   const resolvedKeywords = stripHtml(seo?.metaKeywords || fallbackKeywords || "");
-  const resolvedCanonical = String(
-    seo?.canonicalUrl ||
-      canonicalUrl ||
-      (typeof window !== "undefined" ? window.location.href : "")
-  ).trim();
+  const siteBase =
+    typeof import.meta !== "undefined" && import.meta.env
+      ? import.meta.env.VITE_SITE_URL
+      : "";
+  const currentHref =
+    typeof window !== "undefined" ? window.location.href : "";
+  const resolvedCanonical = cleanCanonical({
+    override: canonicalUrl,
+    siteBase,
+    currentHref,
+  });
 
   return (
     <Helmet prioritizeSeoTags>
