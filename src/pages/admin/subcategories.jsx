@@ -513,7 +513,7 @@ export default function AdminSubCategories() {
                       id="subcategory-meta-keywords"
                       value={metaKeywords}
                       onChange={setMetaKeywords}
-                      placeholder="Type and separate with space/comma"
+                      placeholder="Type keyword or sentence and press Enter"
                     />
                   </div>
                 </div>
@@ -716,7 +716,7 @@ export default function AdminSubCategories() {
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground">Meta Keywords</label>
-                      <KeywordTagsInput id="edit-subcategory-meta-keywords" value={editMetaKeywords} onChange={setEditMetaKeywords} placeholder="Type and separate with space/comma" />
+                      <KeywordTagsInput id="edit-subcategory-meta-keywords" value={editMetaKeywords} onChange={setEditMetaKeywords} placeholder="Type keyword or sentence and press Enter" />
                     </div>
                   </div>
                 </div>

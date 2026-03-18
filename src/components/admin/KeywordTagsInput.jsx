@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
-const SEPARATOR_REGEX = /[\s,;|]+/;
+// When loading stored value: split by comma or newline (allows sentences per keyword).
+const INITIAL_VALUE_SEPARATOR = /[,\n\r]+/;
 
 function splitKeywords(value) {
   return String(value || "")
-    .split(SEPARATOR_REGEX)
+    .split(INITIAL_VALUE_SEPARATOR)
     .map((part) => part.trim())
     .filter(Boolean);
 }
@@ -27,7 +28,7 @@ export default function KeywordTagsInput({
   id,
   value,
   onChange,
-  placeholder = "Type keyword and press space/comma",
+  placeholder = "Type keyword or sentence and press Enter",
 }) {
   const [keywords, setKeywords] = useState(splitKeywords(value));
   const [draft, setDraft] = useState("");
@@ -47,7 +48,8 @@ export default function KeywordTagsInput({
       setDraft("");
       return;
     }
-    const nextKeywords = appendUnique(keywords, splitKeywords(normalized));
+    // Add the whole draft as one keyword (sentences allowed; no space-splitting).
+    const nextKeywords = appendUnique(keywords, [normalized]);
     commitKeywords(nextKeywords);
     setDraft("");
   };
@@ -59,16 +61,17 @@ export default function KeywordTagsInput({
 
   const onDraftChange = (e) => {
     const next = e.target.value;
-    if (SEPARATOR_REGEX.test(next)) {
-      const parts = next.split(SEPARATOR_REGEX);
-      const endsWithSeparator = /[\s,;|]$/.test(next);
-      const finalized = endsWithSeparator ? parts : parts.slice(0, -1);
-      const tail = endsWithSeparator ? "" : parts[parts.length - 1];
-      const sanitized = finalized.map((part) => part.trim()).filter(Boolean);
+    // Only newline creates new keywords; spaces are allowed (full sentences).
+    if (/\n/.test(next)) {
+      const parts = next.split(/\n/);
+      const endsWithNewline = next.endsWith("\n");
+      const toAdd = endsWithNewline ? parts : parts.slice(0, -1);
+      const tail = endsWithNewline ? "" : (parts[parts.length - 1] ?? "");
+      const sanitized = toAdd.map((part) => part.trim()).filter(Boolean);
       if (sanitized.length > 0) {
         commitKeywords(appendUnique(keywords, sanitized));
       }
-      setDraft(tail || "");
+      setDraft(tail);
       return;
     }
     setDraft(next);
@@ -99,14 +102,18 @@ export default function KeywordTagsInput({
           onChange={onDraftChange}
           onBlur={commitDraft}
           onKeyDown={(e) => {
-            if (["Enter", "Tab", ",", " "].includes(e.key) || e.key === ";") {
+            if (e.key === "Enter" || e.key === "Tab") {
               e.preventDefault();
               commitDraft();
               return;
             }
             if (e.key === "Backspace" && !draft && keywords.length > 0) {
               e.preventDefault();
-              removeKeyword(keywords.length - 1);
+              // Put last keyword into input for editing (don't delete outright).
+              const last = keywords[keywords.length - 1];
+              setKeywords(keywords.slice(0, -1));
+              onChange(keywords.slice(0, -1).join(", "));
+              setDraft(last);
             }
           }}
           className="min-w-[180px] flex-1 bg-transparent px-1 py-1 text-sm outline-none"

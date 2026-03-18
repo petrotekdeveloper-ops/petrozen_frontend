@@ -377,7 +377,7 @@ export default function AdminSeo() {
                   id="add-seo-meta-keywords"
                   value={addMetaKeywords}
                   onChange={setAddMetaKeywords}
-                  placeholder="Type and separate with space/comma"
+                  placeholder="Type keyword or sentence and press Enter"
                 />
               </div>
             </div>
@@ -442,7 +442,7 @@ export default function AdminSeo() {
                   id="seo-meta-keywords"
                   value={editMetaKeywords}
                   onChange={setEditMetaKeywords}
-                  placeholder="Type and separate with space/comma"
+                  placeholder="Type keyword or sentence and press Enter"
                 />
               </div>
             </div>

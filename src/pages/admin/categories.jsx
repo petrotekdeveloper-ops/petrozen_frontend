@@ -556,7 +556,7 @@ export default function AdminCategories() {
                       id="category-meta-keywords"
                       value={metaKeywords}
                       onChange={setMetaKeywords}
-                      placeholder="Type and separate with space/comma"
+                      placeholder="Type keyword or sentence and press Enter"
                     />
                   </div>
                 </div>
@@ -872,7 +872,7 @@ export default function AdminCategories() {
                         id="edit-category-meta-keywords"
                         value={editMetaKeywords}
                         onChange={setEditMetaKeywords}
-                        placeholder="Type and separate with space/comma"
+                        placeholder="Type keyword or sentence and press Enter"
                       />
                     </div>
                   </div>

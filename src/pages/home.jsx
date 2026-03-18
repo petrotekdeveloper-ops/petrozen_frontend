@@ -9,9 +9,18 @@ import SeoHead from "@/components/SeoHead";
 import { IMAGES } from "@/lib/images";
 import { toast } from "@/hooks/use-toast";
 import { useSeo } from "@/hooks/useSeo";
+import { apiClient } from "@/lib/apiClient";
 import HERO_TEST_1 from "../assets/images/heroTest1.jpeg";
 
 import { Download } from "lucide-react";
+
+const apiBase = String(import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+const toBrandImageUrl = (path) => {
+  if (!path) return "";
+  if (/^https?:\/\//i.test(path)) return path;
+  const p = String(path).startsWith("/") ? path : `/${path}`;
+  return `${apiBase}${p}`;
+};
 
 const fadeUp = { opacity: 0, y: 24 };
 const fadeIn = { opacity: 1, y: 0 };
@@ -53,7 +62,26 @@ const SERVICE_CARDS = [
 
 export default function Home() {
   const [isAtTop, setIsAtTop] = useState(true);
+  const [brands, setBrands] = useState([]);
+  const [brandsLoading, setBrandsLoading] = useState(true);
   const { seo } = useSeo("static", "home");
+
+  useEffect(() => {
+    let cancelled = false;
+    setBrandsLoading(true);
+    apiClient
+      .get("/api/brands")
+      .then((res) => {
+        if (!cancelled) setBrands(res?.data?.items ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setBrands([]);
+      })
+      .finally(() => {
+        if (!cancelled) setBrandsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const handleBrochureDownloadClick = () => {
     toast({
@@ -365,6 +393,46 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {brands.length > 0 && (
+        <section
+          data-testid="section-brands"
+          className="py-16 sm:py-20 overflow-hidden bg-gradient-to-b from-secondary/40 to-transparent"
+        >
+          <div className="container-pad reveal" data-reveal="up">
+            <SectionTitle
+              testId="title-brands"
+              eyebrow="Partners"
+              title="Trusted Brands We Work With"
+              align="center"
+            />
+          </div>
+          <div className="container-pad mt-10">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 sm:gap-8 items-stretch">
+              {brands.map((brand, idx) => (
+                <motion.div
+                  key={brand._id}
+                  data-testid={`brand-${brand._id}`}
+                  className="group flex flex-col items-center justify-center rounded-2xl border border-black/10 bg-white p-5 sm:p-7 min-h-[190px] shadow-sm transition-all duration-300 hover:shadow-lg hover:border-primary/20 hover:-translate-y-1"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-30px" }}
+                  transition={{ duration: 0.45, delay: Math.min(idx * 0.06, 0.4) }}
+                  whileHover={{ transition: { duration: 0.2 } }}
+                >
+                  <div className="relative w-full flex-1 flex items-center justify-center">
+                    <img
+                      src={toBrandImageUrl(brand.image)}
+                      alt={brand.name}
+                      className="h-24 sm:h-28 md:h-32 w-auto max-w-full object-contain object-center transition-all duration-300 group-hover:scale-[1.03]"
+                    />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section data-testid="section-why" className="py-16 sm:py-20 bg-secondary">
         <div className="container-pad reveal" data-reveal="zoom">
