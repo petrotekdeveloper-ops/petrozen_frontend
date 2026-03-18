@@ -5,6 +5,10 @@
 [build.environment]
   NODE_VERSION = "18"
 
+[[edge_functions]]
+  path = "/*"
+  function = "prerender"
+
 [[redirects]]
   from = "/sitemap.xml"
   to = "https://petrozen-ylex8.ondigitalocean.app/sitemap.xml"
