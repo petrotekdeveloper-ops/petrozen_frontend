@@ -1,31 +1,52 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { apiClient } from "@/lib/apiClient";
 
 export function useSeo(pageType, pageKey) {
   const normalizedPageType = String(pageType || "").trim();
   const normalizedPageKey = String(pageKey || "").trim();
+  const [seo, setSeo] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const query = useQuery({
-    queryKey: ["seo", normalizedPageType, normalizedPageKey],
-    enabled: Boolean(normalizedPageType && normalizedPageKey),
-    staleTime: 5 * 60 * 1000,
-    queryFn: async () => {
+  useEffect(() => {
+    if (!(normalizedPageType && normalizedPageKey)) {
+      setSeo(null);
+      setIsLoading(false);
+      setError(null);
+      return;
+    }
+    let cancelled = false;
+    setIsLoading(true);
+    setError(null);
+
+    const run = async () => {
       try {
         const res = await apiClient.get(`/api/seo/${normalizedPageType}/${normalizedPageKey}`);
-        return res?.data?.item ?? null;
+        if (!cancelled) setSeo(res?.data?.item ?? null);
       } catch (err) {
+        if (cancelled) return;
         if (err?.response?.status === 404) {
-          return null;
+          setSeo(null);
+          setError(null);
+        } else {
+          setSeo(null);
+          setError(err);
         }
-        throw err;
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-    },
-  });
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [normalizedPageKey, normalizedPageType]);
 
   return {
-    seo: query.data ?? null,
-    isLoading: query.isLoading,
-    error: query.error,
+    seo,
+    isLoading,
+    error,
   };
 }
 

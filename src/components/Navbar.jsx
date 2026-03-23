@@ -78,6 +78,10 @@ export default function Navbar() {
                 alt="Petrozen"
                 className="h-12 w-auto rounded-xl object-contain"
                 data-testid="navbar-logo"
+                loading="eager"
+                decoding="async"
+                width={320}
+                height={110}
               />
               <div className="leading-tight">
                 <div className="text-lg font-semibold tracking-tight">Petrozen</div>

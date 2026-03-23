@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import PageLayout from "@/components/PageLayout";
 import SectionTitle from "@/components/SectionTitle";
 import ServiceCard from "@/components/ServiceCard";
@@ -10,7 +9,12 @@ import { IMAGES } from "@/lib/images";
 import { toast } from "@/hooks/use-toast";
 import { useSeo } from "@/hooks/useSeo";
 import { apiClient } from "@/lib/apiClient";
-import HERO_TEST_1 from "../assets/images/heroTest1.jpeg";
+import HERO_TEST_1 from "../assets/images/heroTest1.webp";
+import HERO_TEST_1_AVIF from "../assets/images/heroTest1.avif";
+import HERO_TEST_1_1280 from "../assets/images/heroTest1-1280.webp";
+import HERO_TEST_1_768 from "../assets/images/heroTest1-768.webp";
+import HERO_TEST_1_1280_AVIF from "../assets/images/heroTest1-1280.avif";
+import HERO_TEST_1_768_AVIF from "../assets/images/heroTest1-768.avif";
 
 import { Download } from "lucide-react";
 
@@ -22,11 +26,9 @@ const toBrandImageUrl = (path) => {
   return `${apiBase}${p}`;
 };
 
-const fadeUp = { opacity: 0, y: 24 };
-const fadeIn = { opacity: 1, y: 0 };
-const stagger = { staggerChildren: 0.12, delayChildren: 0.15 };
-
 const HERO = HERO_TEST_1;
+const HERO_SRCSET = `${HERO_TEST_1_768} 768w, ${HERO_TEST_1_1280} 1280w, ${HERO_TEST_1} 1920w`;
+const HERO_SRCSET_AVIF = `${HERO_TEST_1_768_AVIF} 768w, ${HERO_TEST_1_1280_AVIF} 1280w, ${HERO_TEST_1_AVIF} 1920w`;
 const LOGO = IMAGES.LOGO;
 
 const SERVICE_CARDS = [
@@ -60,13 +62,67 @@ const SERVICE_CARDS = [
   },
 ];
 
+const BRAND_CARD_WIDTH_DESKTOP = 260;
+const BRAND_CARD_WIDTH_MOBILE = 180;
+const BRAND_CARD_GAP = 24;
+
 export default function Home() {
   const [isAtTop, setIsAtTop] = useState(true);
   const [brands, setBrands] = useState([]);
   const [brandsLoading, setBrandsLoading] = useState(true);
+  const [brandScrollIndex, setBrandScrollIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+  const [shouldLoadBrands, setShouldLoadBrands] = useState(false);
+  const brandsTriggerRef = useRef(null);
   const { seo } = useSeo("static", "home");
 
   useEffect(() => {
+    const mq = typeof window !== "undefined" && window.matchMedia?.("(max-width: 639px)");
+    const update = () => setIsMobile(!!mq?.matches);
+    update();
+    mq?.addEventListener?.("change", update);
+    return () => mq?.removeEventListener?.("change", update);
+  }, []);
+
+  const brandCardWidth = isMobile ? BRAND_CARD_WIDTH_MOBILE : BRAND_CARD_WIDTH_DESKTOP;
+  const brandScrollStep = brandCardWidth + BRAND_CARD_GAP;
+
+  useEffect(() => {
+    setBrandScrollIndex(0);
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (isMobile) return;
+    if (brands.length <= 0) return;
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
+    const timer = setInterval(() => {
+      setBrandScrollIndex((prev) => (prev + 1) % brands.length);
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [brands.length, isMobile]);
+
+  useEffect(() => {
+    const marker = brandsTriggerRef.current;
+    if (!marker || shouldLoadBrands) return undefined;
+    if (!("IntersectionObserver" in window)) {
+      setShouldLoadBrands(true);
+      return undefined;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldLoadBrands(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "200px 0px" },
+    );
+    io.observe(marker);
+    return () => io.disconnect();
+  }, [shouldLoadBrands]);
+
+  useEffect(() => {
+    if (!shouldLoadBrands) return;
     let cancelled = false;
     setBrandsLoading(true);
     apiClient
@@ -81,7 +137,7 @@ export default function Home() {
         if (!cancelled) setBrandsLoading(false);
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [shouldLoadBrands]);
 
   const handleBrochureDownloadClick = () => {
     toast({
@@ -93,7 +149,7 @@ export default function Home() {
   useEffect(() => {
     const handleScroll = () => setIsAtTop(window.scrollY <= 0);
     handleScroll();
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -123,7 +179,7 @@ export default function Home() {
 
     elements.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+  }, [brands]);
 
   return (
     <PageLayout testId="page-home">
@@ -133,59 +189,63 @@ export default function Home() {
         fallbackDescription="Petrozen provides certified oil and gas equipment and industrial solutions across the UAE and GCC with a focus on quality, safety, and reliable delivery."
         fallbackKeywords="petrozen, oil and gas equipment, industrial solutions, uae, gcc"
         ogImage={HERO}
+        preloadImage={HERO_TEST_1_AVIF}
+        preloadImageSrcSet={HERO_SRCSET_AVIF}
+        preloadImageSizes="100vw"
       />
       <section
         data-testid="section-hero"
         className="relative overflow-hidden h-screen h-[100svh]"
       >
-        <motion.img
-          src={HERO}
-          alt=""
-          className="absolute inset-0 w-full h-full object-cover"
-          loading="eager"
-          initial={{ scale: 1.08 }}
-          animate={{ scale: 1 }}
-          transition={{ duration: 1.4, ease: [0.22, 0.61, 0.36, 1] }}
-        />
+        <picture className="absolute inset-0">
+          <source srcSet={HERO_SRCSET_AVIF} sizes="100vw" type="image/avif" />
+          <img
+            src={HERO}
+            srcSet={HERO_SRCSET}
+            sizes="100vw"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover hero-media-in"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+            width={1920}
+            height={1080}
+          />
+        </picture>
         <div className="absolute inset-0 bg-black/55" />
 
         <div className="absolute inset-0">
           <div className="container-pad py-20 sm:py-28">
-            <motion.div
-              className="max-w-3xl"
-              initial="hidden"
-              animate="visible"
-              variants={stagger}
-            >
-              <motion.img
+            <div className="max-w-3xl hero-content-in">
+              <img
                 src={LOGO}
                 alt="Petrozen"
                 className={`h-20 w-auto sm:h-24 ${isAtTop ? "" : "invisible"}`}
                 data-testid="hero-logo"
-                variants={{ hidden: fadeUp, visible: { ...fadeIn, transition: { duration: 0.6 } } }}
+                loading="eager"
+                decoding="async"
+                width={640}
+                height={220}
               />
-              <motion.div
+              <div
                 data-testid="text-hero-eyebrow"
                 className="mt-4 text-xs font-semibold tracking-[0.22em] uppercase text-white/80"
-                variants={{ hidden: fadeUp, visible: { ...fadeIn, transition: { duration: 0.6 } } }}
               >
                 Engineering • Industrial
-              </motion.div>
-              <motion.h1
+              </div>
+              <h1
                 data-testid="text-hero-title"
                 className="mt-4 text-5xl sm:text-7xl font-semibold tracking-tight text-white leading-[1.05]"
-                variants={{ hidden: { ...fadeUp, y: 32 }, visible: { ...fadeIn, y: 0, transition: { duration: 0.7 } } }}
               >
                 Igniting Success Worldwide Through Oil & Gas Innovation
-              </motion.h1>
-              <motion.p
+              </h1>
+              <p
                 data-testid="text-hero-subtitle"
                 className="mt-5 text-lg sm:text-xl text-white/85 leading-relaxed"
-                variants={{ hidden: fadeUp, visible: { ...fadeIn, transition: { duration: 0.6 } } }}
               >
                 Petrozen provides certified oil and gas equipment and industrial solutions, fully aligned with international standards. With a focus on quality, safety, and inventory readiness, we support critical energy projects across the UAE and GCC.
-              </motion.p>
-            </motion.div>
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -218,14 +278,7 @@ export default function Home() {
 
             <div className="lg:col-span-7">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ duration: 0.5 }}
-                  whileHover={{ y: -4 }}
-                  className="transition-shadow duration-300 hover:shadow-xl rounded-2xl"
-                >
+                <div className="reveal transition-shadow duration-300 hover:shadow-xl rounded-2xl" data-reveal="up">
                   <ImageCard
                     testId="card-about-1"
                     title="Quality-driven"
@@ -235,15 +288,8 @@ export default function Home() {
                     variant="overlay"
                     aspectRatio="5/6"
                   />
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ duration: 0.5, delay: 0.1 }}
-                  whileHover={{ y: -4 }}
-                  className="transition-shadow duration-300 hover:shadow-xl rounded-2xl"
-                >
+                </div>
+                <div className="reveal transition-shadow duration-300 hover:shadow-xl rounded-2xl" data-reveal="up" style={{ transitionDelay: "100ms" }}>
                   <ImageCard
                     testId="card-about-2"
                     title="Safety-first"
@@ -253,7 +299,7 @@ export default function Home() {
                     variant="overlay"
                     aspectRatio="5/6"
                   />
-                </motion.div>
+                </div>
               </div>
             </div>
           </div>
@@ -273,14 +319,11 @@ export default function Home() {
 
         <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-4 px-4 justify-items-stretch max-w-[1600px] mx-auto items-stretch">
           {SERVICE_CARDS.map((card, idx) => (
-            <motion.div
+            <div
               key={card.id}
-              className="h-full flex"
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-30px" }}
-              transition={{ duration: 0.5, delay: idx * 0.08 }}
-              whileHover={{ y: -6, transition: { duration: 0.25 } }}
+              className="h-full flex reveal"
+              data-reveal="up"
+              style={{ transitionDelay: `${idx * 80}ms` }}
             >
               <ServiceCard
                 vertical
@@ -290,7 +333,7 @@ export default function Home() {
                 imageSrc={IMAGES[card.imageSrcKey]}
                 className="transition-shadow duration-300 hover:shadow-lg w-full h-full min-h-[320px] sm:min-h-[380px]"
               />
-            </motion.div>
+            </div>
           ))}
         </div>
 
@@ -320,14 +363,10 @@ export default function Home() {
               </p>
             </div>
             <div className="lg:col-span-7 flex justify-center lg:justify-end">
-              <motion.div
+              <div
                 data-testid="card-brochure-preview"
-                className="relative w-full max-w-[280px] min-h-[320px] rounded-2xl bg-white overflow-hidden shadow-xl shadow-black/20 flex flex-col border border-black/5"
-                initial={{ opacity: 0, x: 24 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-                whileHover={{ y: -8, scale: 1.02 }}
+                className="reveal relative w-full max-w-[280px] min-h-[320px] rounded-2xl bg-white overflow-hidden shadow-xl shadow-black/20 flex flex-col border border-black/5 transition-transform duration-300 hover:-translate-y-1"
+                data-reveal="right"
               >
                 <svg
                   className="absolute bottom-0 left-0 w-full h-full pointer-events-none"
@@ -376,6 +415,10 @@ export default function Home() {
                     src={LOGO}
                     alt="Petrozen"
                     className="h-20 w-auto object-contain"
+                    loading="lazy"
+                    decoding="async"
+                    width={640}
+                    height={220}
                   />
                   <div className="mt-4 text-base font-semibold text-foreground">Petrozen Brochure</div>
                   <button
@@ -388,12 +431,13 @@ export default function Home() {
                     Download brochure
                   </button>
                 </div>
-              </motion.div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
+      <div ref={brandsTriggerRef} className="h-px w-full" />
       {brands.length > 0 && (
         <section
           data-testid="section-brands"
@@ -407,27 +451,33 @@ export default function Home() {
               align="center"
             />
           </div>
-          <div className="container-pad mt-10">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 sm:gap-8 items-stretch">
-              {brands.map((brand, idx) => (
-                <motion.div
-                  key={brand._id}
+          <div className="container-pad mt-10 overflow-hidden">
+            <div
+              className="flex gap-6 transition-transform duration-500 ease-out"
+              style={{
+                width: "max-content",
+                transform: `translateX(-${brandScrollIndex * brandScrollStep}px)`,
+              }}
+            >
+            {[...brands, ...brands].map((brand, idx) => (
+                <div
+                  key={`${brand._id}-${idx}`}
                   data-testid={`brand-${brand._id}`}
-                  className="group flex flex-col items-center justify-center rounded-2xl border border-black/10 bg-white p-5 sm:p-7 min-h-[190px] shadow-sm transition-all duration-300 hover:shadow-lg hover:border-primary/20 hover:-translate-y-1"
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-30px" }}
-                  transition={{ duration: 0.45, delay: Math.min(idx * 0.06, 0.4) }}
-                  whileHover={{ transition: { duration: 0.2 } }}
+                  className="group flex flex-col items-center justify-center rounded-2xl border border-black/10 bg-white p-3 sm:p-4 min-h-[80px] flex-shrink-0 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-primary/20 hover:-translate-y-1"
+                  style={{ width: brandCardWidth }}
                 >
                   <div className="relative w-full flex-1 flex items-center justify-center">
                     <img
                       src={toBrandImageUrl(brand.image)}
                       alt={brand.name}
-                      className="h-24 sm:h-28 md:h-32 w-auto max-w-full object-contain object-center transition-all duration-300 group-hover:scale-[1.03]"
+                      className="h-36 sm:h-44 md:h-52 w-auto max-w-full object-contain object-center transition-all duration-300 group-hover:scale-[1.03]"
+                      loading="lazy"
+                      decoding="async"
+                      width={420}
+                      height={220}
                     />
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>
@@ -462,14 +512,12 @@ export default function Home() {
                 desc: "Practical solutions designed to perform in upstream, midstream, and downstream environments.",
               },
             ].map((x, idx) => (
-            <motion.div
+            <div
               key={x.title}
               data-testid={`card-why-${idx}`}
-              className="group relative flex flex-col justify-center rounded-2xl border border-white/20 bg-gradient-to-br from-[#4CB506] to-[#76D40B] p-10 h-[320px] shadow-lg shadow-black/15 overflow-hidden transition-all duration-500 ease-out hover:shadow-xl hover:shadow-black/20 hover:-translate-y-1"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.5, delay: idx * 0.1 }}
+              className="group reveal relative flex flex-col justify-center rounded-2xl border border-white/20 bg-gradient-to-br from-[#4CB506] to-[#76D40B] p-10 h-[320px] shadow-lg shadow-black/15 overflow-hidden transition-all duration-500 ease-out hover:shadow-xl hover:shadow-black/20 hover:-translate-y-1"
+              data-reveal="up"
+              style={{ transitionDelay: `${idx * 100}ms` }}
             >
               <h3 className="text-2xl font-semibold tracking-tight text-white transition-all duration-300 ease-out group-hover:opacity-0 group-hover:-translate-y-2">
                 {x.title}
@@ -477,7 +525,7 @@ export default function Home() {
               <p className="absolute inset-0 p-10 flex items-center text-lg text-white/90 leading-relaxed overflow-y-auto opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 ease-out delay-75">
                 {x.desc}
               </p>
-            </motion.div>
+            </div>
             ))}
           </div>
         </div>
@@ -485,14 +533,7 @@ export default function Home() {
 
       <section data-testid="section-cta" className="py-16 sm:py-20">
         <div className="container-pad reveal" data-reveal="up">
-          <motion.div
-            className="rounded-3xl border border-white/10 bg-white/5 p-8 sm:p-12 shadow-[0_24px_70px_rgba(0,0,0,0.25)]"
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            whileHover={{ scale: 1.01, transition: { duration: 0.3 } }}
-          >
+          <div className="reveal rounded-3xl border border-white/10 bg-white/5 p-8 sm:p-12 shadow-[0_24px_70px_rgba(0,0,0,0.25)] transition-transform duration-300 hover:scale-[1.01]" data-reveal="up">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-8">
                 <h3 data-testid="text-cta-title" className="text-3xl sm:text-4xl font-semibold text-black">
@@ -509,7 +550,7 @@ export default function Home() {
                 </Button>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
     </PageLayout>
