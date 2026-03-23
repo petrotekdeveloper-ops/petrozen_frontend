@@ -3,7 +3,7 @@ import Button from "@/components/Button";
 import { Pencil, Trash2 } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import AdminShell from "@/components/admin/AdminShell";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo.webp";
 
 export default function AdminBrands() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -259,7 +259,16 @@ export default function AdminBrands() {
             className="relative z-[60] mx-auto grid w-full max-w-2xl gap-4 rounded-2xl border-2 border-blue-500 bg-card p-4 shadow-xl sm:p-5"
           >
             <div className="flex items-center gap-3">
-              <img src={logo} alt="" className="h-8 w-8 shrink-0 object-contain" aria-hidden />
+              <img
+                src={logo}
+                alt=""
+                loading="eager"
+                decoding="async"
+                width={96}
+                height={96}
+                className="h-8 w-8 shrink-0 object-contain"
+                aria-hidden
+              />
               <h2 className="text-lg font-semibold">Create new brand</h2>
             </div>
             <div>

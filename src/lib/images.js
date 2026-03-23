@@ -1,27 +1,29 @@
 // Local assets – imported so Vite bundles them and URLs work in production
-import logo from "@/assets/logo.png";
-import industryRefinery from "@/assets/images/industry-refinery.jpg";
-import industrialManufacturing from "@/assets/images/industrial-manufacturing.jpg";
-import heroOilGas from "@/assets/images/hero-oil-gas.webp";
-import safety from "@/assets/images/safety.png";
+import logo from "@/assets/logo.webp";
+import logoWhite from "@/assets/logo_white.webp";
+import industryRefinery from "@/assets/images/industry-refinery.avif";
+import industrialManufacturing from "@/assets/images/industrial-manufacturing.avif";
+import heroOilGas from "@/assets/images/hero-oil-gas.avif";
+import safety from "@/assets/images/safety.avif";
 import servicesHero from "@/assets/images/servicesHero.avif";
-import serviceMain from "@/assets/images/serviceMain.jpeg";
-import aboutUsHero from "@/assets/images/aboutUsHero.jpg";
-import aboutUS from "@/assets/images/aboutUS.jpg";
-import missionVisionAbout from "@/assets/images/missionandvisiomAbout.png";
-import airCompService from "@/assets/images/airCompService.jpeg";
-import vaccumPumpServices from "@/assets/images/vaccumPumpServives.png";
-import cncServices from "@/assets/images/cncServices.jpeg";
+import serviceMain from "@/assets/images/serviceMain.webp";
+import aboutUsHero from "@/assets/images/aboutUsHero.avif";
+import aboutUS from "@/assets/images/aboutUS.webp";
+import missionVisionAbout from "@/assets/images/missionandvisiomAbout.avif";
+import airCompService from "@/assets/images/airCompService.webp";
+import vaccumPumpServices from "@/assets/images/vaccumPumpServives.webp";
+import cncServices from "@/assets/images/cncServices.webp";
 
-import homeService1 from "@/assets/images/homeServiceCard/serviceCard1.webp";
-import homeService2 from "@/assets/images/homeServiceCard/serviceCard2.webp";
-import homeService3 from "@/assets/images/homeServiceCard/serviceCard3.webp";
-import homeService4 from "@/assets/images/homeServiceCard/seviceCard4.webp";
-import homeService5 from "@/assets/images/homeServiceCard/serviceCard5.webp";
+import homeService1 from "@/assets/images/homeServiceCard/serviceCard1-optimized.webp";
+import homeService2 from "@/assets/images/homeServiceCard/serviceCard2-optimized.webp";
+import homeService3 from "@/assets/images/homeServiceCard/serviceCard3-optimized.webp";
+import homeService4 from "@/assets/images/homeServiceCard/seviceCard4-optimized.webp";
+import homeService5 from "@/assets/images/homeServiceCard/serviceCard5-optimized.webp";
 
 // Central image variables for use across all pages
 export const IMAGES = {
   LOGO: logo,
+  LOGO_WHITE: logoWhite,
   INDUSTRY_REFINERY: industryRefinery,
   INDUSTRIAL_MANUFACTURING: industrialManufacturing,
   HERO_OIL_GAS: heroOilGas,

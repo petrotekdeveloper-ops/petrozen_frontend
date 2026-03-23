@@ -10,6 +10,8 @@ export default function ImageCard({
   aspectRatio = "16/10",
   className,
   testId,
+  imageWidth = 1600,
+  imageHeight = 1000,
 }) {
   return (
     <div
@@ -28,6 +30,9 @@ export default function ImageCard({
           src={imageSrc}
           alt={imageAlt}
           loading="lazy"
+          decoding="async"
+          width={imageWidth}
+          height={imageHeight}
           className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
         />
         {variant !== "overlay" ? <div className="absolute inset-0 bg-black/20" /> : null}

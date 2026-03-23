@@ -240,6 +240,10 @@ export default function Product() {
                       <img
                         src={toPublicUrl(selectedProduct.imageUrl) || IMAGES.LOGO}
                         alt={selectedProduct.title}
+                        loading="eager"
+                        decoding="async"
+                        width={1200}
+                        height={900}
                         className={selectedProduct.imageUrl ? "w-full h-auto max-h-[560px] object-contain" : "max-w-[55%] max-h-[65%] object-contain"}
                       />
                     </div>
@@ -363,6 +367,10 @@ export default function Product() {
                         <img
                           src={toPublicUrl(p.imageUrl) || IMAGES.LOGO}
                           alt={p.title}
+                          loading="lazy"
+                          decoding="async"
+                          width={900}
+                          height={600}
                           className={`absolute z-0 transition-all duration-300 group-hover:scale-105 group-hover:blur-sm ${p.imageUrl ? "inset-0 h-full w-full object-cover" : "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[60%] max-h-[60%] object-contain"}`}
                         />
                         <div

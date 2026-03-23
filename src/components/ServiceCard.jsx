@@ -14,7 +14,15 @@ export default function ServiceCard({
       {imageSrc && vertical ? (
         <>
           <div className="w-full aspect-[2.2/1] overflow-hidden rounded-t-2xl bg-primary/5 shrink-0">
-            <img src={imageSrc} alt="" className="h-full w-full object-cover" />
+            <img
+              src={imageSrc}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              width={1200}
+              height={540}
+              className="h-full w-full object-cover"
+            />
           </div>
           <div className="p-6 flex flex-col flex-1 items-center text-center">
             <div className="text-xl font-semibold">{title}</div>
@@ -37,7 +45,15 @@ export default function ServiceCard({
             )}
           >
             {imageSrc ? (
-              <img src={imageSrc} alt="" className="h-full w-full object-contain" />
+              <img
+                src={imageSrc}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                width={180}
+                height={180}
+                className="h-full w-full object-contain"
+              />
             ) : Icon ? (
               <Icon className="h-5 w-5" strokeWidth={2} />
             ) : null}
