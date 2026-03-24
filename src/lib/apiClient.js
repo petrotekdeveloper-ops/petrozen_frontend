@@ -23,6 +23,14 @@ async function request(method, url, data, config = {}) {
   }
 
   const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
+  if (isFormData) {
+    // Let the browser generate multipart boundary automatically.
+    Object.keys(headers).forEach((key) => {
+      if (String(key).toLowerCase() === "content-type") {
+        delete headers[key];
+      }
+    });
+  }
   if (!isFormData && data !== undefined && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
