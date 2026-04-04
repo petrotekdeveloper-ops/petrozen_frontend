@@ -151,6 +151,31 @@ export default function Product() {
     if (!selectedProduct?.description) return "";
     return String(selectedProduct.description);
   }, [selectedProduct]);
+
+  const varietySection = useMemo(() => {
+    if (!selectedProduct) return { keyword: "grade", values: [] };
+    if (Array.isArray(selectedProduct.varietyValues) && selectedProduct.varietyValues.length > 0) {
+      return {
+        keyword: String(selectedProduct.varietyKeyword || "grade").trim() || "grade",
+        values: selectedProduct.varietyValues
+          .map((s) => String(s || "").trim())
+          .filter(Boolean),
+      };
+    }
+    if (Array.isArray(selectedProduct.varieties) && selectedProduct.varieties.length > 0) {
+      return {
+        keyword: String(selectedProduct.varieties[0]?.keyword || "grade").trim() || "grade",
+        values: selectedProduct.varieties.map((v) => String(v?.grade || "").trim()).filter(Boolean),
+      };
+    }
+    if (Array.isArray(selectedProduct.grades) && selectedProduct.grades.length > 0) {
+      return {
+        keyword: "grade",
+        values: selectedProduct.grades.map((g) => String(g || "").trim()).filter(Boolean),
+      };
+    }
+    return { keyword: "grade", values: [] };
+  }, [selectedProduct]);
   const pageTitle = isDetailView
     ? ""
     : "Products";
@@ -276,6 +301,7 @@ export default function Product() {
             {[
               Array.isArray(selectedProduct.features) && selectedProduct.features.length > 0 && { key: "features", title: "Features", items: selectedProduct.features },
               Array.isArray(selectedProduct.specifications) && selectedProduct.specifications.length > 0 && { key: "specifications", title: "Specifications", items: selectedProduct.specifications },
+              Array.isArray(selectedProduct.applications) && selectedProduct.applications.length > 0 && { key: "applications", title: "Applications", items: selectedProduct.applications },
             ]
               .filter(Boolean)
               .map((section, idx) => (
@@ -295,24 +321,26 @@ export default function Product() {
                 </section>
               ))}
 
-            {Array.isArray(selectedProduct.grades) && selectedProduct.grades.length > 0 ? (
+            {varietySection.values.length > 0 ? (
               <section
-                data-testid="section-product-grades"
-                className={`py-8 sm:py-10 ${([!!(selectedProduct.features?.length), !!(selectedProduct.specifications?.length)].filter(Boolean).length % 2 === 1 ? "bg-background" : "bg-secondary")}`}
+                data-testid="section-product-varieties"
+                className={`py-8 sm:py-10 ${([!!(selectedProduct.features?.length), !!(selectedProduct.specifications?.length), !!(selectedProduct.applications?.length)].filter(Boolean).length % 2 === 1 ? "bg-background" : "bg-secondary")}`}
               >
                 <div>
-                  <div className="container-pad">
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">Grades</h3>
+                  <div className="container-pad mb-6 sm:mb-8">
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                      {varietySection.keyword}
+                    </h3>
                   </div>
                   <div className="mx-auto w-full max-w-[90rem] pl-6 pr-2 sm:pl-8 sm:pr-4 lg:pl-10 lg:pr-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
-                    {selectedProduct.grades.map((grade, i) => (
+                    {varietySection.values.map((val, i) => (
                       <div
-                        key={`grade-${i}`}
-                        className="rounded-xl border border-border/70 bg-card p-6 sm:p-8 flex flex-col gap-4 shadow-sm min-h-[180px]"
+                        key={`variety-${i}`}
+                        className="rounded-xl border border-border/70 bg-card p-6 sm:p-8 flex flex-col gap-3 shadow-sm min-h-[180px]"
                       >
-                        <p className="text-lg sm:text-xl font-medium text-foreground">{grade}</p>
+                        <p className="text-lg sm:text-xl font-medium text-foreground">{val}</p>
                         <div className="mt-auto flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                          <span className="text-xs text-muted-foreground">Need to make an enquiry with this grade</span>
+                          <span className="text-xs text-muted-foreground">Need to make an enquiry for this {varietySection.keyword}</span>
                           <Button
                             as="link"
                             href="/contact"
