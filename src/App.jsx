@@ -24,6 +24,7 @@ const AdminChatbotQuestions = lazy(() => import("@/pages/admin/chat_management/c
 const AdminChatbotServiceQuestions = lazy(() => import("@/pages/admin/chat_management/chatbot-service-questions"));
 const AdminChatbotQuoteQuestions = lazy(() => import("@/pages/admin/chat_management/chatbot-quote-questions"));
 const AdminBrands = lazy(() => import("@/pages/admin/brands"));
+const AdminBlogs = lazy(() => import("@/pages/admin/blogs"));
 const ChatbotWidget = lazy(() => import("@/components/chatbot/ChatbotWidget"));
 const Toaster = lazy(() => import("@/components/ui/toaster").then((m) => ({ default: m.Toaster })));
 
@@ -101,6 +102,7 @@ function Router() {
           <Route path="/admin/chatbot-service-questions" component={AdminChatbotServiceQuestions} />
           <Route path="/admin/chatbot-quote-questions" component={AdminChatbotQuoteQuestions} />
           <Route path="/admin/brands" component={AdminBrands} />
+          <Route path="/admin/blogs" component={AdminBlogs} />
           <Route path="/admin/seo" component={AdminSeo} />
           <Route component={NotFound} />
         </Switch>

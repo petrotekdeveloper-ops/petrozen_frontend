@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.webp";
-import { FolderTree, Layers, Package, LogOut, Search, Inbox, Award, Bot, MessageSquare, HelpCircle, Wrench, FileText, ChevronDown, LayoutGrid } from "lucide-react";
+import { FolderTree, Layers, Package, LogOut, Search, Inbox, Award, Bot, MessageSquare, HelpCircle, Wrench, FileText, ChevronDown, LayoutGrid, BookOpen } from "lucide-react";
 import { clearAdminToken, getAdminToken } from "@/lib/adminAuth";
 
 const productManagementItems = [
@@ -19,6 +19,7 @@ const chatbotManagementItems = [
 ];
 
 const navItems = [
+  { label: "Blogs", href: "/admin/blogs", icon: BookOpen },
   { label: "Brands", href: "/admin/brands", icon: Award },
   { label: "Enquiries", href: "/admin/enquiries", icon: Inbox },
   { label: "Chatbot Enquiries", href: "/admin/chat-enquiries", icon: Bot },
