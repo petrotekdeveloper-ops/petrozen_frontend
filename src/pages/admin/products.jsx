@@ -6,6 +6,30 @@ import AdminShell from "@/components/admin/AdminShell";
 import KeywordTagsInput from "@/components/admin/KeywordTagsInput";
 import { IMAGES } from "@/lib/images";
 
+const DEFAULT_VARIETY_KEYWORD = "grade";
+
+function varietyKeywordFromProduct(src) {
+  const k = String(src?.varietyKeyword || "").trim();
+  if (k) return k;
+  if (Array.isArray(src?.varieties) && src.varieties.length > 0) {
+    return String(src.varieties[0]?.keyword || DEFAULT_VARIETY_KEYWORD).trim() || DEFAULT_VARIETY_KEYWORD;
+  }
+  return DEFAULT_VARIETY_KEYWORD;
+}
+
+function varietyValuesTextFromProduct(src) {
+  if (Array.isArray(src?.varietyValues) && src.varietyValues.length > 0) {
+    return src.varietyValues.map((s) => String(s || "").trim()).filter(Boolean).join("\n");
+  }
+  if (Array.isArray(src?.varieties) && src.varieties.length > 0) {
+    return src.varieties.map((v) => String(v.grade || "").trim()).filter(Boolean).join("\n");
+  }
+  if (Array.isArray(src?.grades) && src.grades.length > 0) {
+    return src.grades.map((g) => String(g || "").trim()).filter(Boolean).join("\n");
+  }
+  return "";
+}
+
 export default function AdminProducts() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -31,7 +55,9 @@ export default function AdminProducts() {
   const [catalogPreview, setCatalogPreview] = useState(null);
   const [featuresText, setFeaturesText] = useState("");
   const [specificationsText, setSpecificationsText] = useState("");
-  const [gradesText, setGradesText] = useState("");
+  const [applicationsText, setApplicationsText] = useState("");
+  const [varietyKeyword, setVarietyKeyword] = useState(DEFAULT_VARIETY_KEYWORD);
+  const [varietyValuesText, setVarietyValuesText] = useState("");
   const [sort, setSort] = useState("");
   const [active, setActive] = useState(true);
   const [status, setStatus] = useState({ type: "", message: "" });
@@ -52,7 +78,9 @@ export default function AdminProducts() {
   const [editCatalogPreview, setEditCatalogPreview] = useState(null);
   const [editFeaturesText, setEditFeaturesText] = useState("");
   const [editSpecificationsText, setEditSpecificationsText] = useState("");
-  const [editGradesText, setEditGradesText] = useState("");
+  const [editApplicationsText, setEditApplicationsText] = useState("");
+  const [editVarietyKeyword, setEditVarietyKeyword] = useState(DEFAULT_VARIETY_KEYWORD);
+  const [editVarietyValuesText, setEditVarietyValuesText] = useState("");
   const [editSort, setEditSort] = useState("");
   const [editActive, setEditActive] = useState(true);
   const [editStatus, setEditStatus] = useState({ type: "", message: "" });
@@ -84,7 +112,7 @@ export default function AdminProducts() {
 
   const parseTextList = (value) =>
     String(value || "")
-      .split(/\r?\n|,/)
+      .split(/\r?\n/)
       .map((x) => x.trim())
       .filter(Boolean);
 
@@ -226,7 +254,9 @@ export default function AdminProducts() {
     setCatalogPreview(null);
     setFeaturesText("");
     setSpecificationsText("");
-    setGradesText("");
+    setApplicationsText("");
+    setVarietyKeyword(DEFAULT_VARIETY_KEYWORD);
+    setVarietyValuesText("");
     setImagePreview(null);
     setActive(true);
   };
@@ -338,7 +368,9 @@ export default function AdminProducts() {
     setEditDescription(src?.description || "");
     setEditFeaturesText(listToTextarea(src?.features));
     setEditSpecificationsText(listToTextarea(src?.specifications));
-    setEditGradesText(listToTextarea(src?.grades));
+    setEditApplicationsText(listToTextarea(src?.applications));
+    setEditVarietyKeyword(varietyKeywordFromProduct(src));
+    setEditVarietyValuesText(varietyValuesTextFromProduct(src));
     setEditSort(src?.sort ?? "");
     setEditImageFile(null);
     setEditCatalogFile(null);
@@ -364,7 +396,9 @@ export default function AdminProducts() {
     setEditDescription("");
     setEditFeaturesText("");
     setEditSpecificationsText("");
-    setEditGradesText("");
+    setEditApplicationsText("");
+    setEditVarietyKeyword(DEFAULT_VARIETY_KEYWORD);
+    setEditVarietyValuesText("");
     setEditSort("");
     setEditMetaTitle("");
     setEditMetaDescription("");
@@ -435,7 +469,9 @@ export default function AdminProducts() {
       if (description.trim()) fd.append("description", description.trim());
       fd.append("features", JSON.stringify(parseTextList(featuresText)));
       fd.append("specifications", JSON.stringify(parseTextList(specificationsText)));
-      fd.append("grades", JSON.stringify(parseTextList(gradesText)));
+      fd.append("applications", JSON.stringify(parseTextList(applicationsText)));
+      fd.append("varietyKeyword", (varietyKeyword || DEFAULT_VARIETY_KEYWORD).trim() || DEFAULT_VARIETY_KEYWORD);
+      fd.append("varietyValues", JSON.stringify(parseTextList(varietyValuesText)));
       if (sort.trim()) fd.append("sort", sort.trim());
       fd.append("active", String(active));
       if (imageFile) fd.append("image", imageFile);
@@ -483,7 +519,9 @@ export default function AdminProducts() {
       fd.append("description", editDescription.trim());
       fd.append("features", JSON.stringify(parseTextList(editFeaturesText)));
       fd.append("specifications", JSON.stringify(parseTextList(editSpecificationsText)));
-      fd.append("grades", JSON.stringify(parseTextList(editGradesText)));
+      fd.append("applications", JSON.stringify(parseTextList(editApplicationsText)));
+      fd.append("varietyKeyword", (editVarietyKeyword || DEFAULT_VARIETY_KEYWORD).trim() || DEFAULT_VARIETY_KEYWORD);
+      fd.append("varietyValues", JSON.stringify(parseTextList(editVarietyValuesText)));
       fd.append("sort", (editSort || "").trim());
       fd.append("active", String(editActive));
       if (editImageFile) fd.append("image", editImageFile);
@@ -714,7 +752,7 @@ export default function AdminProducts() {
                         value={featuresText}
                         onChange={(e) => setFeaturesText(e.target.value)}
                         className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                        placeholder={"One per line\nor comma separated"}
+                        placeholder={"One item per line"}
                       />
                     </div>
 
@@ -728,21 +766,49 @@ export default function AdminProducts() {
                         value={specificationsText}
                         onChange={(e) => setSpecificationsText(e.target.value)}
                         className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                        placeholder={"One per line\nor comma separated"}
+                        placeholder={"One item per line"}
                       />
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-foreground" htmlFor="product-grades">
-                        Grades (optional)
+                      <label className="text-sm font-medium text-foreground" htmlFor="product-applications">
+                        Applications (optional)
                       </label>
                       <textarea
-                        id="product-grades"
-                        data-testid="input-admin-product-grades"
-                        value={gradesText}
-                        onChange={(e) => setGradesText(e.target.value)}
+                        id="product-applications"
+                        data-testid="input-admin-product-applications"
+                        value={applicationsText}
+                        onChange={(e) => setApplicationsText(e.target.value)}
                         className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                        placeholder={"One per line\nor comma separated"}
+                        placeholder={"One item per line"}
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="text-sm font-medium text-foreground" htmlFor="product-variety-keyword">
+                        Variety keyword (optional)
+                      </label>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        One label for all options below (default &quot;{DEFAULT_VARIETY_KEYWORD}&quot;). Examples: grade, material, size.
+                      </p>
+                      <input
+                        id="product-variety-keyword"
+                        data-testid="input-admin-product-variety-keyword"
+                        value={varietyKeyword}
+                        onChange={(e) => setVarietyKeyword(e.target.value)}
+                        className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        placeholder={DEFAULT_VARIETY_KEYWORD}
+                      />
+                      <label className="mt-4 block text-sm font-medium text-foreground" htmlFor="product-variety-values">
+                        Values (optional)
+                      </label>
+                      <textarea
+                        id="product-variety-values"
+                        data-testid="input-admin-product-variety-values"
+                        value={varietyValuesText}
+                        onChange={(e) => setVarietyValuesText(e.target.value)}
+                        className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        placeholder={"One value per line\ne.g. API 5L X52"}
                       />
                     </div>
                   </div>
@@ -948,10 +1014,27 @@ export default function AdminProducts() {
                         ) : <p className="mt-1 text-sm text-muted-foreground">—</p>}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Grades</p>
-                        {Array.isArray(detailItem.grades) && detailItem.grades.length > 0 ? (
-                          <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-foreground">{detailItem.grades.map((e, i) => <li key={i}>{e}</li>)}</ul>
+                        <p className="text-sm font-medium text-muted-foreground">Applications</p>
+                        {Array.isArray(detailItem.applications) && detailItem.applications.length > 0 ? (
+                          <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-foreground">{detailItem.applications.map((e, i) => <li key={i}>{e}</li>)}</ul>
                         ) : <p className="mt-1 text-sm text-muted-foreground">—</p>}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Varieties</p>
+                        {Array.isArray(detailItem.varietyValues) && detailItem.varietyValues.length > 0 ? (
+                          <div className="mt-2 space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              {detailItem.varietyKeyword || DEFAULT_VARIETY_KEYWORD}
+                            </p>
+                            <ul className="list-disc space-y-1 pl-5 text-sm text-foreground">
+                              {detailItem.varietyValues.map((val, i) => (
+                                <li key={i}>{val}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : (
+                          <p className="mt-1 text-sm text-muted-foreground">—</p>
+                        )}
                       </div>
                     </div>
                   </section>
@@ -1026,15 +1109,42 @@ export default function AdminProducts() {
                       </div>
                       <div>
                         <label className="text-sm font-medium text-foreground">Features</label>
-                        <textarea data-testid="input-admin-product-edit-features" value={editFeaturesText} onChange={(e) => setEditFeaturesText(e.target.value)} className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="One per line or comma separated" />
+                        <textarea data-testid="input-admin-product-edit-features" value={editFeaturesText} onChange={(e) => setEditFeaturesText(e.target.value)} className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="One item per line" />
                       </div>
                       <div>
                         <label className="text-sm font-medium text-foreground">Specifications</label>
-                        <textarea data-testid="input-admin-product-edit-specifications" value={editSpecificationsText} onChange={(e) => setEditSpecificationsText(e.target.value)} className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="One per line or comma separated" />
+                        <textarea data-testid="input-admin-product-edit-specifications" value={editSpecificationsText} onChange={(e) => setEditSpecificationsText(e.target.value)} className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="One item per line" />
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-foreground">Grades</label>
-                        <textarea data-testid="input-admin-product-edit-grades" value={editGradesText} onChange={(e) => setEditGradesText(e.target.value)} className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="One per line or comma separated" />
+                        <label className="text-sm font-medium text-foreground">Applications</label>
+                        <textarea data-testid="input-admin-product-edit-applications" value={editApplicationsText} onChange={(e) => setEditApplicationsText(e.target.value)} className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="One item per line" />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="text-sm font-medium text-foreground" htmlFor="edit-product-variety-keyword">
+                          Variety keyword (optional)
+                        </label>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          One label for all values (default &quot;{DEFAULT_VARIETY_KEYWORD}&quot;).
+                        </p>
+                        <input
+                          id="edit-product-variety-keyword"
+                          data-testid="input-admin-product-edit-variety-keyword"
+                          value={editVarietyKeyword}
+                          onChange={(e) => setEditVarietyKeyword(e.target.value)}
+                          className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                          placeholder={DEFAULT_VARIETY_KEYWORD}
+                        />
+                        <label className="mt-4 block text-sm font-medium text-foreground" htmlFor="edit-product-variety-values">
+                          Values (optional)
+                        </label>
+                        <textarea
+                          id="edit-product-variety-values"
+                          data-testid="input-admin-product-edit-variety-values"
+                          value={editVarietyValuesText}
+                          onChange={(e) => setEditVarietyValuesText(e.target.value)}
+                          className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                          placeholder="One value per line"
+                        />
                       </div>
                     </div>
                   </section>

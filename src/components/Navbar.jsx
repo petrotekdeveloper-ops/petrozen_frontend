@@ -85,7 +85,7 @@ export default function Navbar() {
               />
               <div className="leading-tight">
                 <div className="text-lg font-semibold tracking-tight">Petrozen</div>
-                <div className="text-base text-black/70">Ignite Sucess, Fuel Progress</div>
+                <div className="text-base text-black/70">Ignite Success, Fuel Progress</div>
               </div>
             </span>
           </Link>
