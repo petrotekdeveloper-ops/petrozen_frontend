@@ -1,13 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-<<<<<<< HEAD
 import logo from "@/assets/logo_white.png";
-import { FolderTree, Layers, Package, LogOut, Search, Inbox, Award } from "lucide-react";
-=======
-import logo from "@/assets/logo.webp";
 import { FolderTree, Layers, Package, LogOut, Search, Inbox, Award, Bot, MessageSquare, HelpCircle, Wrench, FileText, ChevronDown, LayoutGrid, BookOpen } from "lucide-react";
->>>>>>> f012ff56286f8714dc09611db3d63feb1eadf5cb
 import { clearAdminToken, getAdminToken } from "@/lib/adminAuth";
 
 const productManagementItems = [
@@ -52,27 +47,14 @@ export default function AdminSidebar({ className }) {
       )}
     >
       {/* Header */}
-<<<<<<< HEAD
       <div className="flex items-center gap-3 border-b border-white/15 px-5 py-4">
         <img
           src={logo}
           alt="Petrozen"
+          loading="eager"
+          decoding="async"
           className="h-10 w-auto shrink-0 object-contain"
         />
-=======
-      <div className="flex items-center gap-3 border-b border-border/80 px-5 py-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl">
-          <img
-            src={logo}
-            alt="Petrozen"
-            loading="eager"
-            decoding="async"
-            width={96}
-            height={96}
-            className="h-full w-full object-contain"
-          />
-        </div>
->>>>>>> f012ff56286f8714dc09611db3d63feb1eadf5cb
         <div className="min-w-0">
           <h2 className="truncate font-semibold tracking-tight text-white">
             Admin
@@ -96,11 +78,11 @@ export default function AdminSidebar({ className }) {
             onClick={() => setProductMgmtOpen((o) => !o)}
             className={cn(
               "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
               "border-l-[3px] border-transparent",
               productManagementItems.some((item) => isActive(item.href))
-                ? "border-l-primary text-primary"
-                : "border-transparent text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                ? "border-l-white text-white"
+                : "text-blue-100/85 hover:bg-white/10 hover:text-white",
             )}
           >
             <LayoutGrid className="h-[18px] w-[18px] shrink-0" aria-hidden />
@@ -111,7 +93,7 @@ export default function AdminSidebar({ className }) {
             />
           </button>
           {productMgmtOpen && (
-            <div className="ml-4 flex flex-col gap-0.5 border-l border-border/60 pl-3">
+            <div className="ml-4 flex flex-col gap-0.5 border-l border-white/20 pl-3">
               {productManagementItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
@@ -121,11 +103,11 @@ export default function AdminSidebar({ className }) {
                       data-testid={`link-admin-${item.label.toLowerCase()}`}
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
                         "border-l-[3px] border-transparent",
                         active
-                          ? "border-l-primary bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                          ? "border-l-white bg-white/20 text-white"
+                          : "text-blue-100/85 hover:bg-white/10 hover:text-white",
                       )}
                     >
                       <Icon
@@ -149,11 +131,11 @@ export default function AdminSidebar({ className }) {
             onClick={() => setChatbotMgmtOpen((o) => !o)}
             className={cn(
               "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
               "border-l-[3px] border-transparent",
               chatbotManagementItems.some((item) => isActive(item.href))
-                ? "border-l-primary text-primary"
-                : "border-transparent text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                ? "border-l-white text-white"
+                : "text-blue-100/85 hover:bg-white/10 hover:text-white",
             )}
           >
             <Bot className="h-[18px] w-[18px] shrink-0" aria-hidden />
@@ -164,7 +146,7 @@ export default function AdminSidebar({ className }) {
             />
           </button>
           {chatbotMgmtOpen && (
-            <div className="ml-4 flex flex-col gap-0.5 border-l border-border/60 pl-3">
+            <div className="ml-4 flex flex-col gap-0.5 border-l border-white/20 pl-3">
               {chatbotManagementItems.map((item) => {
                 const Icon = item.icon;
                 const active = isActive(item.href);
@@ -174,11 +156,11 @@ export default function AdminSidebar({ className }) {
                       data-testid={`link-admin-${item.label.toLowerCase()}`}
                       className={cn(
                         "flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
                         "border-l-[3px] border-transparent",
                         active
-                          ? "border-l-primary bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                          ? "border-l-white bg-white/20 text-white"
+                          : "text-blue-100/85 hover:bg-white/10 hover:text-white",
                       )}
                     >
                       <Icon

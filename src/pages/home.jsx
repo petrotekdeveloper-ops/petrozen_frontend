@@ -8,17 +8,13 @@ import SeoHead from "@/components/SeoHead";
 import { IMAGES } from "@/lib/images";
 import { useSeo } from "@/hooks/useSeo";
 import { apiClient } from "@/lib/apiClient";
-<<<<<<< HEAD
-import HERO_TEST_1 from "../assets/images/heroTest1.jpeg";
-import BROCHURE_PDF from "../assets/brochure/Petrozen_Corporate_Brochure.pdf";
-=======
 import HERO_TEST_1 from "../assets/images/heroTest1.webp";
 import HERO_TEST_1_AVIF from "../assets/images/heroTest1.avif";
 import HERO_TEST_1_1280 from "../assets/images/heroTest1-1280.webp";
 import HERO_TEST_1_768 from "../assets/images/heroTest1-768.webp";
 import HERO_TEST_1_1280_AVIF from "../assets/images/heroTest1-1280.avif";
 import HERO_TEST_1_768_AVIF from "../assets/images/heroTest1-768.avif";
->>>>>>> f012ff56286f8714dc09611db3d63feb1eadf5cb
+import BROCHURE_PDF from "../assets/brochure/Petrozen_Corporate_Brochure.pdf";
 
 import { Download, Eye } from "lucide-react";
 
