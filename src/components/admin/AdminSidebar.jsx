@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo_white.png";
 import { FolderTree, Layers, Package, LogOut, Search, Inbox, Award } from "lucide-react";
 import { clearAdminToken, getAdminToken } from "@/lib/adminAuth";
 
@@ -23,20 +23,22 @@ export default function AdminSidebar({ className }) {
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-30 flex w-[280px] flex-col border-r border-border/80 bg-card",
+        "fixed inset-y-0 left-0 z-30 flex w-[280px] flex-col border-r border-white/10 bg-gradient-to-br from-[#002C92] to-[#059AFC]",
         className,
       )}
     >
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border/80 px-5 py-4">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl">
-          <img src={logo} alt="Petrozen" className="h-full w-full object-contain" />
-        </div>
+      <div className="flex items-center gap-3 border-b border-white/15 px-5 py-4">
+        <img
+          src={logo}
+          alt="Petrozen"
+          className="h-10 w-auto shrink-0 object-contain"
+        />
         <div className="min-w-0">
-          <h2 className="truncate font-semibold tracking-tight text-foreground">
+          <h2 className="truncate font-semibold tracking-tight text-white">
             Admin
           </h2>
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="truncate text-xs text-blue-100/80">
             Product hierarchy
           </p>
         </div>
@@ -44,7 +46,7 @@ export default function AdminSidebar({ className }) {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-0.5 p-3" aria-label="Admin navigation">
-        <p className="mb-2 px-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <p className="mb-2 px-2 text-[11px] font-medium uppercase tracking-wider text-blue-100/70">
           Content
         </p>
         {navItems.map((item) => {
@@ -56,11 +58,11 @@ export default function AdminSidebar({ className }) {
                 data-testid={`link-admin-${item.label.toLowerCase()}`}
                 className={cn(
                   "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
                   "border-l-[3px] border-transparent",
                   active
-                    ? "border-l-primary bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                    ? "border-l-white bg-white/20 text-white"
+                    : "text-blue-100/85 hover:bg-white/10 hover:text-white",
                 )}
               >
                 <Icon
@@ -76,7 +78,7 @@ export default function AdminSidebar({ className }) {
       </nav>
 
       {/* Logout */}
-      <div className="border-t border-border/80 p-3">
+      <div className="border-t border-white/15 p-3">
         {isLoggedIn ? (
           <button
             type="button"
@@ -87,7 +89,7 @@ export default function AdminSidebar({ className }) {
             }}
             className={cn(
               "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium",
-              "text-red-600 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "text-red-200 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
             )}
           >
             <LogOut className="h-[18px] w-[18px] shrink-0" aria-hidden />
@@ -99,7 +101,7 @@ export default function AdminSidebar({ className }) {
               data-testid="button-admin-login"
               className={cn(
                 "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium",
-                "text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                "text-blue-100/85 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
               )}
             >
               <LogOut className="h-[18px] w-[18px] shrink-0" aria-hidden />

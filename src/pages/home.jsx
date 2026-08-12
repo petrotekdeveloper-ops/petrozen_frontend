@@ -7,12 +7,12 @@ import ImageCard from "@/components/ImageCard";
 import Button from "@/components/Button";
 import SeoHead from "@/components/SeoHead";
 import { IMAGES } from "@/lib/images";
-import { toast } from "@/hooks/use-toast";
 import { useSeo } from "@/hooks/useSeo";
 import { apiClient } from "@/lib/apiClient";
 import HERO_TEST_1 from "../assets/images/heroTest1.jpeg";
+import BROCHURE_PDF from "../assets/brochure/Petrozen_Corporate_Brochure.pdf";
 
-import { Download } from "lucide-react";
+import { Download, Eye } from "lucide-react";
 
 const apiBase = String(import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const toBrandImageUrl = (path) => {
@@ -84,10 +84,16 @@ export default function Home() {
   }, []);
 
   const handleBrochureDownloadClick = () => {
-    toast({
-      title: "Brochure unavailable",
-      description: "The brochure is currently unavailable. Please contact us for assistance.",
-    });
+    const link = document.createElement("a");
+    link.href = BROCHURE_PDF;
+    link.download = "Petrozen_Corporate_Brochure.pdf";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
+  const handleBrochureViewClick = () => {
+    window.open(BROCHURE_PDF, "_blank", "noopener,noreferrer");
   };
 
   useEffect(() => {
@@ -378,15 +384,26 @@ export default function Home() {
                     className="h-20 w-auto object-contain"
                   />
                   <div className="mt-4 text-base font-semibold text-foreground">Petrozen Brochure</div>
-                  <button
-                    type="button"
-                    onClick={handleBrochureDownloadClick}
-                    data-testid="link-brochure-download"
-                    className="mt-12 inline-flex items-center gap-2 text-sm font-medium text-primary transition-all duration-300 hover:text-primary/80 hover:gap-3"
-                  >
-                    <Download className="h-5 w-5" />
-                    Download brochure
-                  </button>
+                  <div className="mt-12 flex flex-col items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleBrochureViewClick}
+                      data-testid="link-brochure-view"
+                      className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-all duration-300 hover:text-primary/80 hover:gap-3"
+                    >
+                      <Eye className="h-5 w-5" />
+                      View brochure
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleBrochureDownloadClick}
+                      data-testid="link-brochure-download"
+                      className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-all duration-300 hover:text-primary/80 hover:gap-3"
+                    >
+                      <Download className="h-5 w-5" />
+                      Download brochure
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             </div>
