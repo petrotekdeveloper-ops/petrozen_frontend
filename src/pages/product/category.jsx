@@ -92,7 +92,15 @@ export default function Category() {
                 <Link key={cat._id} href={`/products/${toSlug(cat.title)}`}>
                   <a className="min-w-0 w-full block reveal" data-reveal={idx % 2 === 0 ? "left" : "right"} style={{ transitionDelay: `${idx * 120}ms` }} data-testid={`card-category-${cat._id}`}>
                     <div className="group relative w-full rounded-2xl overflow-hidden shadow-sm shadow-black/5 h-[200px] sm:h-[220px] lg:h-[240px] transition-all duration-300 hover:shadow-xl hover:shadow-black/10 hover:-translate-y-1">
-                      <img src={toPublicUrl(cat.imageUrl) || IMAGES.LOGO} alt="" className={`absolute z-0 transition-all duration-300 group-hover:scale-105 group-hover:blur-sm ${cat.imageUrl ? "inset-0 h-full w-full object-cover" : "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[60%] max-h-[60%] object-contain"}`} />
+                      <img
+                        src={toPublicUrl(cat.imageUrl) || IMAGES.LOGO}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        width={900}
+                        height={600}
+                        className={`absolute z-0 transition-all duration-300 group-hover:scale-105 group-hover:blur-sm ${cat.imageUrl ? "inset-0 h-full w-full object-cover" : "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-[60%] max-h-[60%] object-contain"}`}
+                      />
                       <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/85 via-black/30 to-transparent" aria-hidden />
                       <div className="absolute inset-0 z-20 flex flex-col justify-end p-6">
                         <h3 className="text-2xl sm:text-3xl font-semibold text-white">{cat.title}</h3>

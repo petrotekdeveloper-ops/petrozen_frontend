@@ -28,7 +28,11 @@ export default function PageLayout({
                 src={heroImage}
                 alt=""
                 className="h-full w-full object-cover"
-                loading="lazy"
+                loading="eager"
+                fetchPriority="high"
+                decoding="async"
+                width={1920}
+                height={1080}
               />
             ) : (
               <div className="h-full w-full bg-secondary" />

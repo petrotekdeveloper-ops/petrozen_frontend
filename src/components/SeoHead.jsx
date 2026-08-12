@@ -55,6 +55,9 @@ export default function SeoHead({
   fallbackKeywords = "",
   canonicalUrl,
   ogImage,
+  preloadImage,
+  preloadImageSrcSet,
+  preloadImageSizes,
 }) {
   const bodyExcerpt =
     typeof window !== "undefined" && typeof document !== "undefined"
@@ -93,6 +96,15 @@ export default function SeoHead({
       ) : null}
       {resolvedCanonical ? (
         <link rel="canonical" href={resolvedCanonical} />
+      ) : null}
+      {preloadImage ? (
+        <link
+          rel="preload"
+          as="image"
+          href={preloadImage}
+          imageSrcSet={preloadImageSrcSet}
+          imageSizes={preloadImageSizes}
+        />
       ) : null}
 
       <meta property="og:type" content="website" />

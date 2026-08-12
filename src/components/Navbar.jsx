@@ -78,10 +78,14 @@ export default function Navbar() {
                 alt="Petrozen"
                 className="h-12 w-auto rounded-xl object-contain"
                 data-testid="navbar-logo"
+                loading="eager"
+                decoding="async"
+                width={320}
+                height={110}
               />
               <div className="leading-tight">
                 <div className="text-lg font-semibold tracking-tight">Petrozen</div>
-                <div className="text-base text-black/70">Ignite Sucess, Fuel Progress</div>
+                <div className="text-base text-black/70">Ignite Success, Fuel Progress</div>
               </div>
             </span>
           </Link>

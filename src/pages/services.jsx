@@ -147,6 +147,10 @@ export default function Services() {
                     src={card.image}
                     alt=""
                     className="absolute inset-0 z-0 h-full w-full object-cover transition-all duration-300 group-hover:scale-105 group-hover:blur-sm"
+                    loading="lazy"
+                    decoding="async"
+                    width={1200}
+                    height={720}
                   />
                   <div
                     className="absolute inset-0 z-10 bg-gradient-to-t from-black/85 via-black/30 to-transparent"

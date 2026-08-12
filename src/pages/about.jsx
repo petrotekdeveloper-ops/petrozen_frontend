@@ -72,6 +72,9 @@ export default function About() {
                 alt="Quality and precision at the core of what we do"
                 className="w-full max-w-[90%] ml-0 lg:ml-auto rounded-2xl shadow-[0_18px_50px_rgba(0,0,0,0.10)] object-cover"
                 loading="lazy"
+                decoding="async"
+                width={1200}
+                height={900}
               />
             </div>
           </div>

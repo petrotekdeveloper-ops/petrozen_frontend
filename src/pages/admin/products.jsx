@@ -1,10 +1,42 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Button from "@/components/Button";
-import { ArrowLeft, Pencil, Trash2, X } from "lucide-react";
+import { ArrowLeft, ImagePlus, Pencil, Trash2, X } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import AdminShell from "@/components/admin/AdminShell";
 import KeywordTagsInput from "@/components/admin/KeywordTagsInput";
 import { IMAGES } from "@/lib/images";
+
+const DEFAULT_VARIETY_KEYWORD = "grade";
+const MAX_PRODUCT_IMAGES = 15;
+
+function normalizeProductImages(item) {
+  if (!item) return [];
+  if (Array.isArray(item.images) && item.images.length) return item.images.filter(Boolean);
+  if (item.imageUrl) return [item.imageUrl];
+  return [];
+}
+
+function varietyKeywordFromProduct(src) {
+  const k = String(src?.varietyKeyword || "").trim();
+  if (k) return k;
+  if (Array.isArray(src?.varieties) && src.varieties.length > 0) {
+    return String(src.varieties[0]?.keyword || DEFAULT_VARIETY_KEYWORD).trim() || DEFAULT_VARIETY_KEYWORD;
+  }
+  return DEFAULT_VARIETY_KEYWORD;
+}
+
+function varietyValuesTextFromProduct(src) {
+  if (Array.isArray(src?.varietyValues) && src.varietyValues.length > 0) {
+    return src.varietyValues.map((s) => String(s || "").trim()).filter(Boolean).join("\n");
+  }
+  if (Array.isArray(src?.varieties) && src.varieties.length > 0) {
+    return src.varieties.map((v) => String(v.grade || "").trim()).filter(Boolean).join("\n");
+  }
+  if (Array.isArray(src?.grades) && src.grades.length > 0) {
+    return src.grades.map((g) => String(g || "").trim()).filter(Boolean).join("\n");
+  }
+  return "";
+}
 
 export default function AdminProducts() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -26,12 +58,14 @@ export default function AdminProducts() {
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
   const [metaKeywords, setMetaKeywords] = useState("");
-  const [imageFile, setImageFile] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
   const [catalogFile, setCatalogFile] = useState(null);
   const [catalogPreview, setCatalogPreview] = useState(null);
   const [featuresText, setFeaturesText] = useState("");
   const [specificationsText, setSpecificationsText] = useState("");
-  const [gradesText, setGradesText] = useState("");
+  const [applicationsText, setApplicationsText] = useState("");
+  const [varietyKeyword, setVarietyKeyword] = useState(DEFAULT_VARIETY_KEYWORD);
+  const [varietyValuesText, setVarietyValuesText] = useState("");
   const [sort, setSort] = useState("");
   const [active, setActive] = useState(true);
   const [status, setStatus] = useState({ type: "", message: "" });
@@ -47,21 +81,22 @@ export default function AdminProducts() {
   const [editMetaTitle, setEditMetaTitle] = useState("");
   const [editMetaDescription, setEditMetaDescription] = useState("");
   const [editMetaKeywords, setEditMetaKeywords] = useState("");
-  const [editImageFile, setEditImageFile] = useState(null);
+  const [editKeptUrls, setEditKeptUrls] = useState([]);
+  const [editNewFiles, setEditNewFiles] = useState([]);
   const [editCatalogFile, setEditCatalogFile] = useState(null);
   const [editCatalogPreview, setEditCatalogPreview] = useState(null);
   const [editFeaturesText, setEditFeaturesText] = useState("");
   const [editSpecificationsText, setEditSpecificationsText] = useState("");
-  const [editGradesText, setEditGradesText] = useState("");
+  const [editApplicationsText, setEditApplicationsText] = useState("");
+  const [editVarietyKeyword, setEditVarietyKeyword] = useState(DEFAULT_VARIETY_KEYWORD);
+  const [editVarietyValuesText, setEditVarietyValuesText] = useState("");
   const [editSort, setEditSort] = useState("");
   const [editActive, setEditActive] = useState(true);
   const [editStatus, setEditStatus] = useState({ type: "", message: "" });
   const [isUpdating, setIsUpdating] = useState(false);
   const [deletingId, setDeletingId] = useState("");
-  const [imagePreview, setImagePreview] = useState(null);
   const [imageDropActive, setImageDropActive] = useState(false);
   const [catalogDropActive, setCatalogDropActive] = useState(false);
-  const [editImagePreview, setEditImagePreview] = useState(null);
   const [editImageDropActive, setEditImageDropActive] = useState(false);
   const [editCatalogDropActive, setEditCatalogDropActive] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -84,7 +119,7 @@ export default function AdminProducts() {
 
   const parseTextList = (value) =>
     String(value || "")
-      .split(/\r?\n|,/)
+      .split(/\r?\n/)
       .map((x) => x.trim())
       .filter(Boolean);
 
@@ -221,33 +256,37 @@ export default function AdminProducts() {
     setMetaTitle("");
     setMetaDescription("");
     setMetaKeywords("");
-    setImageFile(null);
+    setImageFiles([]);
     setCatalogFile(null);
     setCatalogPreview(null);
     setFeaturesText("");
     setSpecificationsText("");
-    setGradesText("");
-    setImagePreview(null);
+    setApplicationsText("");
+    setVarietyKeyword(DEFAULT_VARIETY_KEYWORD);
+    setVarietyValuesText("");
     setActive(true);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  useEffect(() => {
-    if (imageFile) {
-      const url = URL.createObjectURL(imageFile);
-      setImagePreview(url);
-      return () => URL.revokeObjectURL(url);
-    }
-    setImagePreview(null);
-  }, [imageFile]);
+  const createImagePreviews = useMemo(() => {
+    return imageFiles.map((f) => ({ file: f, url: URL.createObjectURL(f) }));
+  }, [imageFiles]);
 
   useEffect(() => {
-    if (editImageFile) {
-      const url = URL.createObjectURL(editImageFile);
-      setEditImagePreview(url);
-      return () => URL.revokeObjectURL(url);
-    }
-    setEditImagePreview(null);
-  }, [editImageFile]);
+    return () => {
+      createImagePreviews.forEach((p) => URL.revokeObjectURL(p.url));
+    };
+  }, [createImagePreviews]);
+
+  const editNewPreviews = useMemo(() => {
+    return editNewFiles.map((f) => ({ file: f, url: URL.createObjectURL(f) }));
+  }, [editNewFiles]);
+
+  useEffect(() => {
+    return () => {
+      editNewPreviews.forEach((p) => URL.revokeObjectURL(p.url));
+    };
+  }, [editNewPreviews]);
 
   useEffect(() => {
     if (catalogFile?.type?.startsWith("image/")) {
@@ -338,9 +377,12 @@ export default function AdminProducts() {
     setEditDescription(src?.description || "");
     setEditFeaturesText(listToTextarea(src?.features));
     setEditSpecificationsText(listToTextarea(src?.specifications));
-    setEditGradesText(listToTextarea(src?.grades));
+    setEditApplicationsText(listToTextarea(src?.applications));
+    setEditVarietyKeyword(varietyKeywordFromProduct(src));
+    setEditVarietyValuesText(varietyValuesTextFromProduct(src));
     setEditSort(src?.sort ?? "");
-    setEditImageFile(null);
+    setEditKeptUrls(normalizeProductImages(src));
+    setEditNewFiles([]);
     setEditCatalogFile(null);
     setEditCatalogPreview(null);
     setEditActive(Boolean(src?.active));
@@ -364,26 +406,41 @@ export default function AdminProducts() {
     setEditDescription("");
     setEditFeaturesText("");
     setEditSpecificationsText("");
-    setEditGradesText("");
+    setEditApplicationsText("");
+    setEditVarietyKeyword(DEFAULT_VARIETY_KEYWORD);
+    setEditVarietyValuesText("");
     setEditSort("");
     setEditMetaTitle("");
     setEditMetaDescription("");
     setEditMetaKeywords("");
-    setEditImageFile(null);
+    setEditKeptUrls([]);
+    setEditNewFiles([]);
     setEditCatalogFile(null);
-    setEditImagePreview(null);
     setEditCatalogPreview(null);
+    if (editFileInputRef.current) editFileInputRef.current.value = "";
     setEditActive(true);
     setEditStatus({ type: "", message: "" });
   };
 
-  const handleImageDrop = (e, setFile, isEdit) => {
+  const appendProductImageFiles = (fileList, isEdit) => {
+    const incoming = Array.from(fileList || []).filter((f) => isImageType(f));
+    if (!incoming.length) return;
+    if (isEdit) {
+      setEditNewFiles((prev) => {
+        const room = MAX_PRODUCT_IMAGES - editKeptUrls.length - prev.length;
+        return [...prev, ...incoming.slice(0, Math.max(0, room))];
+      });
+    } else {
+      setImageFiles((prev) => [...prev, ...incoming.slice(0, Math.max(0, MAX_PRODUCT_IMAGES - prev.length))]);
+    }
+  };
+
+  const handleImageDrop = (e, isEdit) => {
     e.preventDefault();
     e.stopPropagation();
     if (isEdit) setEditImageDropActive(false);
     else setImageDropActive(false);
-    const file = e.dataTransfer?.files?.[0];
-    if (isImageType(file)) setFile(file);
+    appendProductImageFiles(e.dataTransfer?.files, isEdit);
   };
 
   const handleImageDragOver = (e, isEdit) => {
@@ -435,10 +492,12 @@ export default function AdminProducts() {
       if (description.trim()) fd.append("description", description.trim());
       fd.append("features", JSON.stringify(parseTextList(featuresText)));
       fd.append("specifications", JSON.stringify(parseTextList(specificationsText)));
-      fd.append("grades", JSON.stringify(parseTextList(gradesText)));
+      fd.append("applications", JSON.stringify(parseTextList(applicationsText)));
+      fd.append("varietyKeyword", (varietyKeyword || DEFAULT_VARIETY_KEYWORD).trim() || DEFAULT_VARIETY_KEYWORD);
+      fd.append("varietyValues", JSON.stringify(parseTextList(varietyValuesText)));
       if (sort.trim()) fd.append("sort", sort.trim());
       fd.append("active", String(active));
-      if (imageFile) fd.append("image", imageFile);
+      imageFiles.forEach((file) => fd.append("images", file));
       if (catalogFile) fd.append("catelog", catalogFile);
 
       const prodRes = await apiClient.post("/api/products", fd, {
@@ -483,10 +542,13 @@ export default function AdminProducts() {
       fd.append("description", editDescription.trim());
       fd.append("features", JSON.stringify(parseTextList(editFeaturesText)));
       fd.append("specifications", JSON.stringify(parseTextList(editSpecificationsText)));
-      fd.append("grades", JSON.stringify(parseTextList(editGradesText)));
+      fd.append("applications", JSON.stringify(parseTextList(editApplicationsText)));
+      fd.append("varietyKeyword", (editVarietyKeyword || DEFAULT_VARIETY_KEYWORD).trim() || DEFAULT_VARIETY_KEYWORD);
+      fd.append("varietyValues", JSON.stringify(parseTextList(editVarietyValuesText)));
       fd.append("sort", (editSort || "").trim());
       fd.append("active", String(editActive));
-      if (editImageFile) fd.append("image", editImageFile);
+      fd.append("existingImages", JSON.stringify(editKeptUrls));
+      editNewFiles.forEach((file) => fd.append("images", file));
       if (editCatalogFile) fd.append("catelog", editCatalogFile);
 
       await apiClient.put(`/api/products/${editingId}`, fd, {
@@ -714,7 +776,7 @@ export default function AdminProducts() {
                         value={featuresText}
                         onChange={(e) => setFeaturesText(e.target.value)}
                         className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                        placeholder={"One per line\nor comma separated"}
+                        placeholder={"One item per line"}
                       />
                     </div>
 
@@ -728,21 +790,49 @@ export default function AdminProducts() {
                         value={specificationsText}
                         onChange={(e) => setSpecificationsText(e.target.value)}
                         className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                        placeholder={"One per line\nor comma separated"}
+                        placeholder={"One item per line"}
                       />
                     </div>
 
                     <div>
-                      <label className="text-sm font-medium text-foreground" htmlFor="product-grades">
-                        Grades (optional)
+                      <label className="text-sm font-medium text-foreground" htmlFor="product-applications">
+                        Applications (optional)
                       </label>
                       <textarea
-                        id="product-grades"
-                        data-testid="input-admin-product-grades"
-                        value={gradesText}
-                        onChange={(e) => setGradesText(e.target.value)}
+                        id="product-applications"
+                        data-testid="input-admin-product-applications"
+                        value={applicationsText}
+                        onChange={(e) => setApplicationsText(e.target.value)}
                         className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-                        placeholder={"One per line\nor comma separated"}
+                        placeholder={"One item per line"}
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="text-sm font-medium text-foreground" htmlFor="product-variety-keyword">
+                        Variety keyword (optional)
+                      </label>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        One label for all options below (default &quot;{DEFAULT_VARIETY_KEYWORD}&quot;). Examples: grade, material, size.
+                      </p>
+                      <input
+                        id="product-variety-keyword"
+                        data-testid="input-admin-product-variety-keyword"
+                        value={varietyKeyword}
+                        onChange={(e) => setVarietyKeyword(e.target.value)}
+                        className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        placeholder={DEFAULT_VARIETY_KEYWORD}
+                      />
+                      <label className="mt-4 block text-sm font-medium text-foreground" htmlFor="product-variety-values">
+                        Values (optional)
+                      </label>
+                      <textarea
+                        id="product-variety-values"
+                        data-testid="input-admin-product-variety-values"
+                        value={varietyValuesText}
+                        onChange={(e) => setVarietyValuesText(e.target.value)}
+                        className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                        placeholder={"One value per line\ne.g. API 5L X52"}
                       />
                     </div>
                   </div>
@@ -752,22 +842,54 @@ export default function AdminProducts() {
                   <h3 className="text-sm font-semibold text-foreground">Uploads</h3>
                   <div className="mt-3 grid gap-4 sm:grid-cols-2">
                     <div>
-                      <label className="text-sm font-medium text-foreground">Image (optional)</label>
-                      <input ref={fileInputRef} id="product-image" data-testid="input-admin-product-image" type="file" accept="image/*" className="sr-only" onChange={(e) => setImageFile(e.target.files?.[0] ?? null)} />
-                      <div role="button" tabIndex={0} onClick={() => fileInputRef.current?.click()} onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()} onDragOver={(e) => handleImageDragOver(e, false)} onDragLeave={(e) => handleImageDragLeave(e, false)} onDrop={(e) => handleImageDrop(e, setImageFile, false)} className={`mt-2 flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${imageDropActive ? "border-primary bg-primary/5" : "border-border/70 bg-muted/30 hover:border-primary/50 hover:bg-muted/50"}`}>
-                        {imagePreview ? (
-                          <div className="relative w-full p-2">
-                            <img src={imagePreview} alt="Preview" className="mx-auto max-h-24 rounded-lg object-contain" />
-                            <button type="button" onClick={(e) => { e.stopPropagation(); setImageFile(null); fileInputRef.current && (fileInputRef.current.value = ""); }} className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80" aria-label="Remove image">×</button>
-                          </div>
-                        ) : (
-                          <>
-                            <svg className="mb-2 h-10 w-10 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z" /></svg>
-                            <span className="text-center text-sm font-medium text-foreground">Drop image here or click to browse</span>
-                            <span className="mt-0.5 text-xs text-muted-foreground">PNG, JPG, WebP up to 5MB</span>
-                          </>
-                        )}
+                      <label className="text-sm font-medium text-foreground">Product images (optional, up to {MAX_PRODUCT_IMAGES})</label>
+                      <input
+                        ref={fileInputRef}
+                        id="product-image"
+                        data-testid="input-admin-product-image"
+                        type="file"
+                        accept="image/jpeg,image/png,image/jpg"
+                        multiple
+                        className="sr-only"
+                        onChange={(e) => {
+                          appendProductImageFiles(e.target.files, false);
+                          e.target.value = "";
+                        }}
+                      />
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => fileInputRef.current?.click()}
+                        onKeyDown={(e) => e.key === "Enter" && fileInputRef.current?.click()}
+                        onDragOver={(e) => handleImageDragOver(e, false)}
+                        onDragLeave={(e) => handleImageDragLeave(e, false)}
+                        onDrop={(e) => handleImageDrop(e, false)}
+                        className={`mt-2 flex min-h-[100px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${imageDropActive ? "border-primary bg-primary/5" : "border-border/70 bg-muted/30 hover:border-primary/50 hover:bg-muted/50"}`}
+                      >
+                        <ImagePlus className="mb-1 h-8 w-8 text-muted-foreground" aria-hidden />
+                        <span className="text-center text-xs font-medium text-foreground">Drop images here or click to browse</span>
+                        <span className="mt-0.5 text-xs text-muted-foreground">JPEG or PNG, up to 5MB each</span>
                       </div>
+                      {createImagePreviews.length > 0 ? (
+                        <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                          {createImagePreviews.map((p, i) => (
+                            <li key={`${p.url}-${i}`} className="relative aspect-square overflow-hidden rounded-lg border border-border/60 bg-muted/40">
+                              <img src={p.url} alt="" className="h-full w-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setImageFiles((prev) => prev.filter((_, idx) => idx !== i));
+                                }}
+                                className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-sm text-white hover:bg-black/80"
+                                aria-label="Remove image"
+                              >
+                                ×
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
                     </div>
 
                     <div>
@@ -893,7 +1015,21 @@ export default function AdminProducts() {
                   <section className="rounded-2xl border border-border/60 bg-card p-6 shadow-sm overflow-hidden">
                     <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
                       <div className="shrink-0 flex justify-center sm:justify-start">
-                        <img src={toPublicUrl(detailItem.imageUrl) || IMAGES.LOGO} alt={detailItem.title || "Product"} className="h-64 w-64 object-contain" />
+                        {normalizeProductImages(detailItem).length > 1 ? (
+                          <div className="grid max-w-md grid-cols-2 gap-2">
+                            {normalizeProductImages(detailItem).map((url) => (
+                              <div key={url} className="overflow-hidden rounded-xl border border-border/60 bg-muted/20">
+                                <img src={toPublicUrl(url)} alt="" className="aspect-square h-32 w-full object-contain p-2 sm:h-36" loading="lazy" />
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <img
+                            src={toPublicUrl(normalizeProductImages(detailItem)[0] || detailItem.imageUrl) || IMAGES.LOGO}
+                            alt={detailItem.title || "Product"}
+                            className="h-64 w-64 object-contain"
+                          />
+                        )}
                       </div>
                       <div className="min-w-0 flex-1 space-y-3">
                         <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">{detailItem.title || "—"}</h2>
@@ -948,10 +1084,27 @@ export default function AdminProducts() {
                         ) : <p className="mt-1 text-sm text-muted-foreground">—</p>}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground">Grades</p>
-                        {Array.isArray(detailItem.grades) && detailItem.grades.length > 0 ? (
-                          <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-foreground">{detailItem.grades.map((e, i) => <li key={i}>{e}</li>)}</ul>
+                        <p className="text-sm font-medium text-muted-foreground">Applications</p>
+                        {Array.isArray(detailItem.applications) && detailItem.applications.length > 0 ? (
+                          <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-foreground">{detailItem.applications.map((e, i) => <li key={i}>{e}</li>)}</ul>
                         ) : <p className="mt-1 text-sm text-muted-foreground">—</p>}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Varieties</p>
+                        {Array.isArray(detailItem.varietyValues) && detailItem.varietyValues.length > 0 ? (
+                          <div className="mt-2 space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              {detailItem.varietyKeyword || DEFAULT_VARIETY_KEYWORD}
+                            </p>
+                            <ul className="list-disc space-y-1 pl-5 text-sm text-foreground">
+                              {detailItem.varietyValues.map((val, i) => (
+                                <li key={i}>{val}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : (
+                          <p className="mt-1 text-sm text-muted-foreground">—</p>
+                        )}
                       </div>
                     </div>
                   </section>
@@ -1026,15 +1179,42 @@ export default function AdminProducts() {
                       </div>
                       <div>
                         <label className="text-sm font-medium text-foreground">Features</label>
-                        <textarea data-testid="input-admin-product-edit-features" value={editFeaturesText} onChange={(e) => setEditFeaturesText(e.target.value)} className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="One per line or comma separated" />
+                        <textarea data-testid="input-admin-product-edit-features" value={editFeaturesText} onChange={(e) => setEditFeaturesText(e.target.value)} className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="One item per line" />
                       </div>
                       <div>
                         <label className="text-sm font-medium text-foreground">Specifications</label>
-                        <textarea data-testid="input-admin-product-edit-specifications" value={editSpecificationsText} onChange={(e) => setEditSpecificationsText(e.target.value)} className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="One per line or comma separated" />
+                        <textarea data-testid="input-admin-product-edit-specifications" value={editSpecificationsText} onChange={(e) => setEditSpecificationsText(e.target.value)} className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="One item per line" />
                       </div>
                       <div>
-                        <label className="text-sm font-medium text-foreground">Grades</label>
-                        <textarea data-testid="input-admin-product-edit-grades" value={editGradesText} onChange={(e) => setEditGradesText(e.target.value)} className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="One per line or comma separated" />
+                        <label className="text-sm font-medium text-foreground">Applications</label>
+                        <textarea data-testid="input-admin-product-edit-applications" value={editApplicationsText} onChange={(e) => setEditApplicationsText(e.target.value)} className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" placeholder="One item per line" />
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="text-sm font-medium text-foreground" htmlFor="edit-product-variety-keyword">
+                          Variety keyword (optional)
+                        </label>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          One label for all values (default &quot;{DEFAULT_VARIETY_KEYWORD}&quot;).
+                        </p>
+                        <input
+                          id="edit-product-variety-keyword"
+                          data-testid="input-admin-product-edit-variety-keyword"
+                          value={editVarietyKeyword}
+                          onChange={(e) => setEditVarietyKeyword(e.target.value)}
+                          className="mt-2 h-11 w-full rounded-xl border border-border/70 bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                          placeholder={DEFAULT_VARIETY_KEYWORD}
+                        />
+                        <label className="mt-4 block text-sm font-medium text-foreground" htmlFor="edit-product-variety-values">
+                          Values (optional)
+                        </label>
+                        <textarea
+                          id="edit-product-variety-values"
+                          data-testid="input-admin-product-edit-variety-values"
+                          value={editVarietyValuesText}
+                          onChange={(e) => setEditVarietyValuesText(e.target.value)}
+                          className="mt-2 min-h-[96px] w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                          placeholder="One value per line"
+                        />
                       </div>
                     </div>
                   </section>
@@ -1042,17 +1222,63 @@ export default function AdminProducts() {
                     <h3 className="text-sm font-semibold text-foreground">Uploads</h3>
                     <div className="mt-3 grid gap-4 sm:grid-cols-2">
                       <div>
-                        <label className="text-sm font-medium text-foreground">Image</label>
-                        <input ref={editFileInputRef} type="file" accept="image/*" className="sr-only" onChange={(e) => setEditImageFile(e.target.files?.[0] ?? null)} />
-                        <div role="button" tabIndex={0} onClick={() => editFileInputRef.current?.click()} onKeyDown={(e) => e.key === "Enter" && editFileInputRef.current?.click()} onDragOver={(e) => handleImageDragOver(e, true)} onDragLeave={(e) => handleImageDragLeave(e, true)} onDrop={(e) => handleImageDrop(e, setEditImageFile, true)} className={`mt-2 flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${editImageDropActive ? "border-primary bg-primary/5" : "border-border/70 bg-muted/30 hover:border-primary/50 hover:bg-muted/50"}`}>
-                          {editImagePreview || (items.find((i) => i._id === editingId) || detailItem)?.imageUrl ? (
-                            <div className="relative w-full p-2">
-                              <img src={editImagePreview || toPublicUrl((items.find((i) => i._id === editingId) || detailItem)?.imageUrl)} alt="Preview" className="mx-auto max-h-24 rounded-lg object-contain" />
-                              {editImageFile && <button type="button" onClick={(e) => { e.stopPropagation(); setEditImageFile(null); editFileInputRef.current && (editFileInputRef.current.value = ""); }} className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80" aria-label="Remove">×</button>}
-                            </div>
-                          ) : (
-                            <><svg className="mb-2 h-10 w-10 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z" /></svg><span className="text-sm font-medium text-foreground">Drop or click</span></>
-                          )}
+                        <label className="text-sm font-medium text-foreground">Product images</label>
+                        <p className="mt-1 text-xs text-muted-foreground">Remove thumbnails to drop them from storage. Add more below (max {MAX_PRODUCT_IMAGES} total).</p>
+                        {editKeptUrls.length || editNewPreviews.length ? (
+                          <ul className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                            {editKeptUrls.map((url, i) => (
+                              <li key={`kept-${url}-${i}`} className="relative aspect-square overflow-hidden rounded-lg border border-border/60">
+                                <img src={toPublicUrl(url)} alt="" className="h-full w-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => setEditKeptUrls((prev) => prev.filter((_, idx) => idx !== i))}
+                                  className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-sm text-white hover:bg-black/80"
+                                  aria-label="Remove image"
+                                >
+                                  ×
+                                </button>
+                              </li>
+                            ))}
+                            {editNewPreviews.map((p, i) => (
+                              <li key={`new-${i}-${p.url}`} className="relative aspect-square overflow-hidden rounded-lg border border-border/60">
+                                <img src={p.url} alt="" className="h-full w-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => setEditNewFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                                  className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-sm text-white hover:bg-black/80"
+                                  aria-label="Remove new image"
+                                >
+                                  ×
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="mt-2 text-xs text-muted-foreground">No images yet. Add files below (optional).</p>
+                        )}
+                        <input
+                          ref={editFileInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/jpg"
+                          multiple
+                          className="sr-only"
+                          onChange={(e) => {
+                            appendProductImageFiles(e.target.files, true);
+                            e.target.value = "";
+                          }}
+                        />
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => editFileInputRef.current?.click()}
+                          onKeyDown={(e) => e.key === "Enter" && editFileInputRef.current?.click()}
+                          onDragOver={(e) => handleImageDragOver(e, true)}
+                          onDragLeave={(e) => handleImageDragLeave(e, true)}
+                          onDrop={(e) => handleImageDrop(e, true)}
+                          className={`mt-2 flex min-h-[88px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed transition-colors ${editImageDropActive ? "border-primary bg-primary/5" : "border-border/70 bg-muted/30 hover:border-primary/50 hover:bg-muted/50"}`}
+                        >
+                          <ImagePlus className="mb-1 h-7 w-7 text-muted-foreground" aria-hidden />
+                          <span className="text-center text-xs font-medium text-foreground">Add more images</span>
                         </div>
                       </div>
                       <div>
@@ -1158,20 +1384,26 @@ export default function AdminProducts() {
 
             {!isLoading && !loadError && items.length > 0 ? (
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {items.map((item) => (
+                {items.map((item) => {
+                  const pics = normalizeProductImages(item);
+                  const thumb = pics[0];
+                  return (
                   <button
                     key={item._id}
                     type="button"
                     data-testid={`card-admin-product-${item._id}`}
                     onClick={() => { setSelectedId(item._id); setIsFormOpen(false); }}
-                    className="group flex flex-col items-center gap-3 rounded-xl border-2 border-border/60 bg-card p-4 text-left shadow-sm transition-all hover:shadow-lg hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    className="group relative flex flex-col items-center gap-3 rounded-xl border-2 border-border/60 bg-card p-4 text-left shadow-sm transition-all hover:shadow-lg hover:border-primary/40 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   >
                     <img
-                      src={toPublicUrl(item.imageUrl) || IMAGES.LOGO}
+                      src={toPublicUrl(thumb || item.imageUrl) || IMAGES.LOGO}
                       alt=""
                       className="h-44 w-44 shrink-0 rounded-xl object-contain transition-transform group-hover:scale-105"
                       loading="lazy"
                     />
+                    {pics.length > 1 ? (
+                      <span className="absolute right-5 top-5 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white">{pics.length} photos</span>
+                    ) : null}
                     <span className="w-full truncate text-center text-sm font-semibold text-foreground">{item.title}</span>
                     <div className="flex flex-wrap items-center justify-center gap-1">
                       {item.brand ? (
@@ -1191,7 +1423,8 @@ export default function AdminProducts() {
                       ) : null}
                     </div>
                   </button>
-                ))}
+                );
+                })}
               </div>
             ) : null}
             </div>
